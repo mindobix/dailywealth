@@ -125,7 +125,7 @@ function _renderIcTypesView() {
               ${_icTypes.map(t => `
                 <tr>
                   <td class="ic-type-name">${_icEsc(t.name)}</td>
-                  <td>${t.tab === '529' ? '529 Plans' : 'Investments'}</td>
+                  <td>${t.tab === '529' ? '529 Plans' : t.tab === 'kids' ? 'Kids' : 'Investments'}</td>
                   <td class="ic-mono">${_icEsc(t.dateColumn)}</td>
                   <td>${t.mappings.filter(m => m.accountField).length}</td>
                   <td class="ic-type-actions">

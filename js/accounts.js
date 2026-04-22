@@ -88,6 +88,8 @@ function _generateAccountSeed(clientId) {
   addCols(getColsForFormat('investments_family'), 'investments');
   addCols(getColsForFormat('529'),               '529');
   addCols(getColsForFormat('529_family'),        '529');
+  addCols(getColsForFormat('kids'),              'kids');
+  addCols(getColsForFormat('kids_family'),       'kids');
   return seed;
 }
 
@@ -353,7 +355,7 @@ function openAccountModal(id) {
   document.getElementById('acct-modal-id').value          = a?.id            || '';
   document.getElementById('acct-modal-name').value        = a?.name          || '';
   document.getElementById('acct-modal-tab').value         = a?.tab           || _acctTabFilter;
-  document.getElementById('acct-modal-tab').disabled      = !!a;
+  document.getElementById('acct-modal-tab').disabled      = false;
   document.getElementById('acct-modal-type').value        = a?.type          || '';
   document.getElementById('acct-modal-brokerage').value   = a?.brokerageName || '';
   document.getElementById('acct-modal-number').value      = a?.accountNumber || '';
@@ -400,7 +402,7 @@ async function saveAccountModal() {
 
   const clientId = typeof getActiveClientId === 'function' ? getActiveClientId() : '';
   const existing = existingId ? _accounts.find(a => a.id === existingId) : null;
-  const tab      = existing?.tab || document.getElementById('acct-modal-tab').value;
+  const tab      = document.getElementById('acct-modal-tab').value || existing?.tab;
   const id       = existingId   || `acct_${clientId}_${tab}_${uid()}`;
 
   // New account gets order after all existing items in the tab
@@ -426,11 +428,12 @@ async function saveAccountModal() {
     createdAt: existing?.createdAt || Date.now(),
   });
 
-  // For new accounts: add field to every matching importType format so it appears as a column
-  if (!existing && field) {
-    const formats = tab === 'investments'
-      ? ['investments', 'investments_family']
-      : ['529', '529_family'];
+  // For new accounts or tab changes: add field to every matching importType format
+  const tabChanged = existing && existing.tab !== tab;
+  if ((!existing || tabChanged) && field) {
+    const formats = tab === 'investments' ? ['investments', 'investments_family']
+                  : tab === 'kids'        ? ['kids', 'kids_family']
+                  : ['529', '529_family'];
     const allImportTypes = await getImportTypes();
     for (const it of allImportTypes) {
       if (formats.includes(it.format) && Array.isArray(it.cols)) {

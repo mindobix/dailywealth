@@ -30,6 +30,7 @@ function switchView(v) {
   if (v === 'dashboard')   initDashboardView();
   if (v === 'investments') initInvestmentsView();
   if (v === '529')         initPlans529View();
+  if (v === 'kids')        initKidsView();
   if (v === 'accounting')  initAccountingView();
   if (v === 'clients')     initClientsView();
   if (v === 'accounts')    initAccountsView();
@@ -84,10 +85,11 @@ document.addEventListener('click', e => {
 // ── Backup ────────────────────────────────────────────────────────
 
 async function backupData() {
-  const [investments, plans529, importHistory, clients, importTypes,
+  const [investments, plans529, kids, importHistory, clients, importTypes,
          accounts, computedFields, csvImportTypes, csvRecords, accountingEntries] = await Promise.all([
     dbGetAll('investments'),
     dbGetAll('plans529'),
+    dbGetAll('kids'),
     dbGetAll('importHistory'),
     dbGetAll('clients'),
     dbGetAll('importTypes'),
@@ -103,6 +105,7 @@ async function backupData() {
     exportedAt: new Date().toISOString(),
     investments,
     plans529,
+    kids,
     importHistory,
     clients,
     importTypes,
@@ -141,7 +144,7 @@ async function restoreData(event) {
       return;
     }
 
-    const stores = ['investments', 'plans529', 'importHistory', 'clients',
+    const stores = ['investments', 'plans529', 'kids', 'importHistory', 'clients',
                     'importTypes', 'accounts', 'computedFields', 'csvImportTypes', 'csvRecords', 'accountingEntries'];
 
     const hasAny = stores.some(s => Array.isArray(backup[s]) && backup[s].length > 0);

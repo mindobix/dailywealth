@@ -136,6 +136,7 @@ async function saveComputedModal() {
 
   if (typeof renderInvestmentsGrid === 'function') renderInvestmentsGrid();
   if (typeof renderPlans529Grid    === 'function') renderPlans529Grid();
+  if (typeof renderKidsGrid        === 'function') renderKidsGrid();
 }
 
 async function deleteComputedById(id) {
@@ -146,6 +147,7 @@ async function deleteComputedById(id) {
 
   if (typeof renderInvestmentsGrid === 'function') renderInvestmentsGrid();
   if (typeof renderPlans529Grid    === 'function') renderPlans529Grid();
+  if (typeof renderKidsGrid        === 'function') renderKidsGrid();
 }
 
 // ─────────────────────────────────────────────────────────────────

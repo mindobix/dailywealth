@@ -44,6 +44,10 @@
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
       529 Plans
     </button>
+    <button class="nav-btn" id="nav-kids" onclick="switchView('kids')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Kids
+    </button>
     <button class="nav-btn" id="nav-accounting" onclick="switchView('accounting')">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       Accounting
@@ -165,6 +169,42 @@
     </div>
   </div>
 
+  <!-- ═══ KIDS VIEW ═══ -->
+  <div id="view-kids" class="view" style="display:none">
+
+    <div class="page-hd">
+      <div class="page-hd-inner">
+        <h1 class="page-title">Kids</h1>
+        <p class="page-sub">Kids portfolio snapshots &mdash; click any cell to edit</p>
+      </div>
+    </div>
+
+    <div class="grid-body">
+      <div class="grid-toolbar">
+        <input type="text" class="grid-search" id="kid-search" placeholder="Filter by date&hellip; e.g. 2021 or 6/2020" oninput="renderKidsGrid()">
+        <select class="grid-yr-sel" id="kid-year" onchange="renderKidsGrid()">
+          <option value="">All years</option>
+        </select>
+        <select class="grid-mo-sel" id="kid-month" onchange="renderKidsGrid()">
+          <!-- populated by grid.js MONTH_OPTIONS -->
+        </select>
+        <span class="grid-count-badge" id="kid-count"></span>
+        <button class="grid-add-btn" onclick="addKidsRow()">+ Add Row</button>
+      </div>
+
+      <div class="grid-table-container">
+        <div class="grid-pg-bar" id="kid-pg-top"></div>
+        <div class="grid-table-wrap">
+          <table class="data-grid">
+            <thead id="kid-thead"></thead>
+            <tbody id="kid-body" data-store="kids"></tbody>
+          </table>
+        </div>
+        <div class="grid-pg-bar" id="kid-pg-bot"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ ACCOUNTING VIEW ═══ -->
   <div id="view-accounting" class="view" style="display:none">
 
@@ -195,6 +235,7 @@
         <div class="acct-tab-group">
           <button class="acct-tab-btn active" data-tab="investments" onclick="setAcctTabFilter('investments')">Investments</button>
           <button class="acct-tab-btn"         data-tab="529"         onclick="setAcctTabFilter('529')">529 Plans</button>
+          <button class="acct-tab-btn"         data-tab="kids"        onclick="setAcctTabFilter('kids')">Kids</button>
         </div>
         <div class="acct-filter-group">
           <button class="acct-vis-btn active" data-filter="shown"  onclick="setAcctFilter('shown')">Shown</button>
@@ -309,6 +350,7 @@
       <select class="modal-select" id="comp-modal-tab" onchange="onComputedTabChange()">
         <option value="investments">Investments</option>
         <option value="529">529 Plans</option>
+        <option value="kids">Kids</option>
       </select>
     </div>
 
@@ -362,6 +404,7 @@
       <select class="modal-select" id="acct-modal-tab">
         <option value="investments">Investments</option>
         <option value="529">529 Plans</option>
+        <option value="kids">Kids</option>
       </select>
     </div>
 
@@ -417,6 +460,7 @@
       <select class="modal-select" id="ic-tmodal-tab" onchange="onIcTabChange()">
         <option value="investments">Investments</option>
         <option value="529">529 Plans</option>
+        <option value="kids">Kids</option>
       </select>
     </div>
 
@@ -469,6 +513,7 @@
 <script src="js/computed.js"></script>
 <script src="js/investments.js"></script>
 <script src="js/529plans.js"></script>
+<script src="js/kids.js"></script>
 <script src="js/importcsv.js"></script>
 <script src="js/accounting.js"></script>
 <script src="js/dashboard.js"></script>

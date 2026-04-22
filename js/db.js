@@ -11,11 +11,12 @@
  *   computedFields    — computed column definitions per client
  *   csvImportTypes    — CSV import type configs
  *   csvRecords        — raw CSV import records
+ *   kids              — kids portfolio snapshots per client
  *   accountingEntries — deposits, RMDs, withdrawals, cash per client
  * ─────────────────────────────────────────────────────────────── */
 
 const DW_DB_NAME    = 'dailywealth-db';
-const DW_DB_VERSION = 7;
+const DW_DB_VERSION = 8;
 
 let _dwIdb = null;
 
@@ -26,7 +27,7 @@ function _openDwDb() {
 
     req.onupgradeneeded = e => {
       const db = e.target.result;
-      for (const name of ['investments', 'plans529', 'importHistory', 'clients', 'importTypes', 'accounts', 'computedFields', 'csvImportTypes', 'csvRecords', 'accountingEntries']) {
+      for (const name of ['investments', 'plans529', 'kids', 'importHistory', 'clients', 'importTypes', 'accounts', 'computedFields', 'csvImportTypes', 'csvRecords', 'accountingEntries']) {
         if (!db.objectStoreNames.contains(name)) {
           db.createObjectStore(name, { keyPath: 'id' });
         }

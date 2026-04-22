@@ -22,6 +22,12 @@ function getPlan529(id)                { return dbGet('plans529', id); }
 function savePlan529Batch(records)     { return dbPutBatch('plans529', records); }
 function countPlans529()               { return dbCount('plans529'); }
 
+// ── Kids ──────────────────────────────────────────────────────────
+
+function getKids()                     { return dbGetAll('kids'); }
+function saveKidBatch(records)         { return dbPutBatch('kids', records); }
+function countKids()                   { return dbCount('kids'); }
+
 // ── Import History ────────────────────────────────────────────────
 
 function getImportHistory()            { return dbGetAll('importHistory'); }

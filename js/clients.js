@@ -81,6 +81,7 @@ function setActiveClient(id) {
       if (state.view === 'dashboard')   initDashboardView();
       if (state.view === 'investments') renderInvestmentsGrid();
       if (state.view === '529')         renderPlans529Grid();
+      if (state.view === 'kids')        renderKidsGrid();
       if (state.view === 'accounting')  initAccountingView();
       if (state.view === 'accounts')    _renderAccountsGrid();
     }
