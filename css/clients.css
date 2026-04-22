@@ -1,0 +1,290 @@
+/* ═══════════════════════════════════════════════════════════════
+   DailyWealth — Clients  (header selector + clients view + modal)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────
+   HEADER CLIENT SELECTOR  (lives inside .nav)
+   ───────────────────────────────────────────── */
+.client-selector-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 2px;
+}
+
+.client-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.client-sel {
+  padding: 5px 26px 5px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background:
+    var(--canvas-raised)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2376766d'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  -webkit-appearance: none;
+  appearance: none;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  max-width: 180px;
+  transition: border-color 0.12s;
+}
+.client-sel:focus { border-color: var(--accent); }
+
+/* ─────────────────────────────────────────────
+   CLIENTS VIEW
+   ───────────────────────────────────────────── */
+.clients-body {
+  padding: 24px 40px 60px;
+  max-width: 100%;
+}
+
+.clients-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 12px;
+}
+
+.clients-count {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.clients-count strong { color: var(--ink-soft); }
+
+.clients-add-btn {
+  padding: 7px 14px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-raised);
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.clients-add-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.clients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+.client-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--canvas-raised);
+  padding: 24px 28px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.12s;
+}
+.client-card:hover { box-shadow: var(--shadow-float); }
+
+.client-card-color {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.client-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.client-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.client-default-badge {
+  display: inline-block;
+  margin-top: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.client-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.client-edit-btn,
+.client-del-btn {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.client-edit-btn {
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--ink-soft);
+}
+.client-edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.client-del-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-faint);
+}
+.client-del-btn:hover {
+  border-color: var(--bad);
+  color: var(--bad);
+  background: var(--bad-bg);
+}
+
+.clients-empty {
+  color: var(--ink-muted);
+  font-size: 14px;
+  font-style: italic;
+  padding: 56px 0;
+  text-align: center;
+}
+
+/* ─────────────────────────────────────────────
+   ADD / EDIT MODAL
+   ───────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(19, 19, 15, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.modal-box {
+  background: var(--canvas-raised);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
+  padding: 28px 32px 24px;
+  width: 380px;
+  max-width: calc(100vw - 48px);
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 22px;
+}
+
+.modal-field { margin-bottom: 18px; }
+
+.modal-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 6px;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-raised);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color 0.12s;
+}
+.modal-input:focus { border-color: var(--accent); }
+
+.color-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s;
+  outline: none;
+  padding: 0;
+}
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.active {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--canvas-raised) inset;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.modal-cancel-btn {
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.modal-cancel-btn:hover { color: var(--ink-soft); border-color: var(--rule-strong); }
+
+.modal-save-btn {
+  padding: 7px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.modal-save-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }

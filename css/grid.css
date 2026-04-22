@@ -1,0 +1,392 @@
+/* ═══════════════════════════════════════════════════════════════
+   DailyWealth — Data Grid  (Investments + 529 tabs)
+   Light editorial theme, inline-editable, sortable, paginated
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── View shell ── */
+.grid-body {
+  padding: 24px 40px 60px;
+  max-width: 100%;
+}
+
+/* ─────────────────────────────────────────────
+   TOOLBAR
+   ───────────────────────────────────────────── */
+.grid-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.grid-search {
+  padding: 7px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-raised);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  outline: none;
+  flex: 1;
+  min-width: 180px;
+  max-width: 260px;
+  transition: border-color 0.12s;
+}
+.grid-search:focus { border-color: var(--accent); }
+.grid-search::placeholder { color: var(--ink-faint); }
+
+.grid-yr-sel, .grid-mo-sel {
+  padding: 7px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-raised);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.grid-yr-sel:focus, .grid-mo-sel:focus { border-color: var(--accent); }
+
+.grid-count-badge {
+  font-size: 12px;
+  color: var(--ink-muted);
+  padding: 0 4px;
+  white-space: nowrap;
+}
+.grid-count-badge strong { color: var(--ink-soft); }
+
+.grid-add-btn {
+  margin-left: auto;
+  padding: 7px 14px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-raised);
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.grid-add-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ─────────────────────────────────────────────
+   TABLE CONTAINER + PAGINATION RAILS
+   ───────────────────────────────────────────── */
+.grid-table-container {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.grid-pg-bar {
+  background: var(--canvas-sunk);
+}
+.grid-pg-bar:first-child { border-bottom: 1px solid var(--rule); }
+.grid-pg-bar:last-child  { border-top: 1px solid var(--rule); }
+
+.grid-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  /* Height available after header + page-hd + toolbar + top-pg-bar + bottom-pg-bar */
+  max-height: calc(100vh - 310px);
+}
+
+/* ─────────────────────────────────────────────
+   TABLE
+   ───────────────────────────────────────────── */
+.data-grid {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 12.5px;
+}
+
+/* Header */
+.data-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  text-align: left;
+  padding: 9px 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  background: var(--canvas-sunk);
+  border-bottom: 2px solid var(--rule-strong);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.data-grid thead th:hover { color: var(--ink-soft); }
+.data-grid thead th.sort-asc::after  { content: ' ↑'; color: var(--accent); font-size: 11px; }
+.data-grid thead th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 11px; }
+.data-grid thead th.no-sort { cursor: default; }
+.data-grid thead th.col-num { text-align: right; }
+
+/* Cells */
+.data-grid tbody td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  vertical-align: middle;
+}
+.data-grid tbody tr:last-child td { border-bottom: none; }
+.data-grid tbody tr:hover td { background: #f5f1e8; }
+
+/* Number alignment */
+.data-grid th.col-num, .data-grid td.col-num { text-align: right; }
+
+/* Date cells — use sans-serif, bold */
+.data-grid td.td-date {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 12.5px;
+}
+
+/* ─────────────────────────────────────────────
+   STICKY COLUMNS  (#  and  Date)
+   ───────────────────────────────────────────── */
+
+/* Row number column */
+.data-grid th.col-rn,
+.data-grid td.col-rn {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  text-align: right;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  cursor: default !important;
+  user-select: none;
+}
+.data-grid th.col-rn { z-index: 3; background: var(--canvas-sunk); }
+.data-grid td.col-rn { background: var(--canvas-raised); font-family: var(--font-mono) !important; }
+.data-grid tbody tr:hover td.col-rn { background: #f5f1e8; }
+
+/* Sticky Date column */
+.data-grid th.col-date-sticky,
+.data-grid td.col-date-sticky {
+  position: sticky;
+  left: 44px;
+  z-index: 1;
+  box-shadow: 3px 0 6px -3px rgba(19,19,15,0.10);
+}
+.data-grid th.col-date-sticky { z-index: 3; background: var(--canvas-sunk); }
+.data-grid td.col-date-sticky { background: var(--canvas-raised); }
+.data-grid tbody tr:hover td.col-date-sticky { background: #f5f1e8; }
+
+/* ─────────────────────────────────────────────
+   INLINE EDITING
+   ───────────────────────────────────────────── */
+
+/* Editable indicator on hover */
+.data-grid tbody td[data-field]:hover {
+  background: #fef5f0 !important;
+  cursor: text;
+}
+.data-grid tbody td.col-date-sticky[data-field]:hover {
+  background: #fef5f0 !important;
+}
+
+/* Active editing state */
+.data-grid tbody td.editing {
+  padding: 0 !important;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: #fff7f4 !important;
+  z-index: 5;
+}
+
+.cell-input {
+  display: block;
+  min-width: 125px;
+  padding: 6px 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+.cell-input[type="date"],
+.cell-input.text-input {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  min-width: 0;
+  width: auto;
+}
+
+/* ─────────────────────────────────────────────
+   VALUE COLOUR CODING
+   ───────────────────────────────────────────── */
+.data-grid td.val-pos { color: var(--ok) !important; font-weight: 600; }
+.data-grid td.val-neg { color: var(--bad) !important; font-weight: 600; }
+.data-grid td.val-null { color: var(--ink-faint) !important; font-style: italic; }
+.data-grid td.val-big {
+  color: var(--ink) !important;
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────────
+   ACTIONS COLUMN
+   ───────────────────────────────────────────── */
+.data-grid th.col-actions,
+.data-grid td.col-actions {
+  text-align: center;
+  cursor: default !important;
+  font-family: var(--font-sans) !important;
+}
+
+.del-row-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  transition: all 0.12s;
+  line-height: 1;
+}
+.del-row-btn:hover {
+  border-color: var(--bad);
+  color: var(--bad);
+  background: var(--bad-bg);
+}
+
+/* ─────────────────────────────────────────────
+   EMPTY STATE
+   ───────────────────────────────────────────── */
+.grid-empty-row td {
+  text-align: center;
+  padding: 64px 24px;
+  color: var(--ink-muted);
+  font-size: 14px;
+  font-family: var(--font-sans) !important;
+  font-style: italic;
+}
+
+/* ─────────────────────────────────────────────
+   PAGINATION
+   ───────────────────────────────────────────── */
+.grid-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+}
+
+.gpg-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gpg-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.gpg-nav {
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule-strong);
+  background: var(--canvas-raised);
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.gpg-nav:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.gpg-nav:disabled { opacity: 0.3; cursor: default; }
+
+.gpg-pages { display: flex; align-items: center; gap: 3px; }
+
+.gpg-page {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule-strong);
+  background: var(--canvas-raised);
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.gpg-page:hover { border-color: var(--accent); color: var(--accent); }
+.gpg-page.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  cursor: default;
+}
+
+.gpg-ellipsis {
+  min-width: 24px;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 13px;
+  user-select: none;
+}
+
+.gpg-info { font-size: 12px; color: var(--ink-muted); white-space: nowrap; }
+.gpg-info strong { color: var(--ink-soft); }
+
+.gpg-sizes { display: flex; align-items: center; gap: 4px; }
+.gpg-size-label { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+
+.gpg-size {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule-strong);
+  background: var(--canvas-raised);
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.gpg-size:hover { border-color: var(--accent); color: var(--accent); }
+.gpg-size.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  cursor: default;
+  font-weight: 700;
+}

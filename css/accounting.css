@@ -1,0 +1,317 @@
+/* ═══════════════════════════════════════════════════════════════
+   DailyWealth — Accounting Tab
+   Three-section layout: Deposits · RMDs · Withdrawals
+   ═══════════════════════════════════════════════════════════════ */
+
+.acktg-body {
+  padding: 24px 40px 60px;
+  max-width: 100%;
+}
+
+/* ── Two-column section grid ───────────────────────────────────── */
+.acktg-sections {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 800px) {
+  .acktg-sections { grid-template-columns: 1fr; }
+}
+
+/* ── Section card ────────────────────────────────────────────────── */
+.acktg-section {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  background: var(--canvas-raised);
+}
+
+.acktg-section-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 10px;
+  background: var(--canvas-sunk);
+  border-bottom: 1px solid var(--rule);
+}
+
+.acktg-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.acktg-add-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-raised);
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.acktg-add-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ── Section table ───────────────────────────────────────────────── */
+.acktg-table-wrap {
+  overflow-x: auto;
+}
+
+.acktg-table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.acktg-table thead th {
+  padding: 7px 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: var(--canvas-sunk);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+.acktg-th-amt { text-align: right !important; }
+
+.acktg-table tbody tr:hover td { background: #f5f1e8; }
+.acktg-table tbody td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+  vertical-align: middle;
+}
+.acktg-table tbody tr:last-child td { border-bottom: none; }
+
+.acktg-td-date {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.acktg-td-amt {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.acktg-td-account {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acktg-td-notes {
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acktg-td-actions {
+  text-align: right;
+  white-space: nowrap;
+  padding-right: 8px !important;
+}
+
+/* ── Inline edit inputs ──────────────────────────────────────────── */
+.acktg-inline-input,
+.acktg-inline-sel {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--canvas-raised);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 4px 7px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.acktg-inline-amt { font-family: var(--font-mono); min-width: 140px; font-size: 13px; }
+.acktg-inline-notes { min-width: 120px; }
+
+.acktg-save-btn,
+.acktg-cancel-btn {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.acktg-save-btn {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  margin-right: 4px;
+}
+.acktg-save-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.acktg-cancel-btn {
+  background: none;
+  color: var(--ink-muted);
+  border: 1px solid var(--rule-strong);
+}
+.acktg-cancel-btn:hover { border-color: var(--ink-soft); color: var(--ink); }
+
+/* Highlight editing row */
+tr:has(.acktg-inline-input) td,
+tr:has(.acktg-inline-sel) td {
+  background: #fff7f4 !important;
+}
+
+.acktg-edit-btn,
+.acktg-del-btn {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  background: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.acktg-edit-btn {
+  color: var(--ink-muted);
+  margin-right: 4px;
+}
+.acktg-edit-btn:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+.acktg-del-btn {
+  color: var(--bad);
+}
+.acktg-del-btn:hover {
+  background: var(--bad-bg);
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+/* Empty row */
+.acktg-empty td {
+  text-align: center;
+  padding: 28px 12px;
+  color: var(--ink-faint);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  font-style: italic;
+}
+
+/* Total footer row */
+.acktg-total-row td {
+  padding: 8px 12px;
+  border-top: 2px solid var(--rule-strong);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--canvas-sunk);
+}
+.acktg-total-row .acktg-td-amt {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+/* ── Cash section ────────────────────────────────────────────────── */
+.acktg-cash-table {
+  min-width: 420px;
+}
+
+/* ── Net Summary panel ───────────────────────────────────────────── */
+.acktg-summary {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  background: var(--canvas-raised);
+  box-shadow: var(--shadow-card);
+  max-width: 420px;
+}
+
+.acktg-summary-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 14px;
+}
+
+.acktg-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+}
+
+.acktg-summary-label {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.acktg-summary-val {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.acktg-summary-divider {
+  border-top: 1px solid var(--rule-strong);
+  margin: 10px 0;
+}
+
+.acktg-summary-net .acktg-summary-label {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.acktg-summary-net .acktg-summary-val {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.acktg-summary-hint {
+  margin-top: 14px;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* ── Modal ───────────────────────────────────────────────────────── */
+#acktg-modal .modal-box { max-width: 380px; }

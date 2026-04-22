@@ -1,0 +1,108 @@
+/* ═══════════════════════════════════════════════════════════════
+   DailyWealth — Base Design System
+   Editorial light palette inspired by agency-local
+   ═══════════════════════════════════════════════════════════════ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* Canvas */
+  --canvas:        #faf8f4;
+  --canvas-sunk:   #f2efe8;
+  --canvas-raised: #ffffff;
+
+  /* Ink */
+  --ink:           #13130f;
+  --ink-soft:      #3a3a34;
+  --ink-muted:     #76766d;
+  --ink-faint:     #b5b4ac;
+
+  /* Borders */
+  --rule:          #e6e2d7;
+  --rule-strong:   #d0ccc2;
+
+  /* Accent — burnt sienna */
+  --accent:        #b8482e;
+  --accent-hover:  #9e3c24;
+  --accent-soft:   #e8cdb9;
+  --accent-ink:    #5a2415;
+
+  /* Semantic */
+  --ok:            #1f6b3a;
+  --ok-bg:         #e6f4ec;
+  --warn:          #a06b14;
+  --warn-bg:       #fef3cd;
+  --bad:           #a52a2a;
+  --bad-bg:        #fce8e8;
+
+  /* Type */
+  --font-sans: 'Inter Tight', system-ui, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Sizing */
+  --radius:    2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+
+  /* Shadows */
+  --shadow-card:  0 1px 0 rgba(19,19,15,0.05), 0 1px 3px rgba(19,19,15,0.06);
+  --shadow-float: 0 6px 24px -8px rgba(19,19,15,0.14);
+
+  /* Layout */
+  --header-h: 52px;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── Utilities ── */
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+button { font-family: var(--font-sans); cursor: pointer; }
+select { font-family: var(--font-sans); }
+
+.main {
+  padding-top: var(--header-h);
+  min-height: 100vh;
+}
+
+/* ── Page heading shared across all views ── */
+.page-hd {
+  padding: 32px 40px 20px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--canvas-raised);
+}
+
+.page-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.page-sub {
+  font-size: 13px;
+  color: var(--ink-faint);
+  margin: 0;
+}

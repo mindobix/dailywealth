@@ -1,0 +1,287 @@
+/* ── accounts.css ── Accounts tab ─────────────────────────────── */
+
+/* ── Page body ── */
+.accounts-body {
+  padding: 24px 40px;
+}
+
+.accounts-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.acct-add-group {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* ── Tab filter (Investments / 529 Plans) ── */
+.acct-tab-group {
+  display: flex;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 3px;
+}
+
+.acct-tab-btn {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-sub);
+  background: none;
+  border: none;
+  border-radius: 5px;
+  padding: 4px 13px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.acct-tab-btn:hover { color: var(--ink); }
+.acct-tab-btn.active {
+  background: #111;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── Visibility filter (Shown / Hidden / All) ── */
+.acct-filter-group {
+  display: flex;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 3px;
+}
+
+.acct-vis-btn {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-sub);
+  background: none;
+  border: none;
+  border-radius: 5px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.acct-vis-btn:hover { color: var(--ink); }
+.acct-vis-btn.active {
+  background: #111;
+  color: #fff;
+  font-weight: 600;
+}
+
+.accounts-count {
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.accounts-add-btn {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.accounts-add-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Table ── */
+.accounts-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.accounts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.accounts-table thead tr {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.accounts-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.accounts-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+  color: var(--ink);
+}
+
+.accounts-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.accounts-table tbody tr:hover td {
+  background: var(--surface-2);
+}
+
+.acct-name-cell {
+  font-weight: 600;
+  min-width: 160px;
+}
+
+.acct-type-cell,
+.acct-brokerage-cell,
+.acct-number-cell {
+  color: var(--ink-sub);
+  min-width: 100px;
+}
+
+.acct-number-cell {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+}
+
+/* ── Kind badges ── */
+.acct-kind-account {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.acct-kind-computed {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 4px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+/* ── Computed details pills inside table ── */
+.acct-pills-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+/* ── Drag handle ── */
+.acct-th-handle { width: 28px; padding: 0; }
+
+.acct-drag-handle {
+  width: 28px;
+  padding: 0 6px;
+  text-align: center;
+  cursor: grab;
+  color: var(--ink-faint);
+  font-size: 15px;
+  user-select: none;
+}
+.acct-drag-handle:active { cursor: grabbing; }
+.acct-drag-handle span   { pointer-events: none; }
+
+/* ── Drag states ── */
+tr.acct-dragging { opacity: 0.35; }
+tr.acct-drag-over {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+/* ── "+ Computed" button variant ── */
+.acct-add-computed-btn {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.acct-add-computed-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Hidden row state ── */
+.acct-row-hidden td {
+  opacity: 0.45;
+}
+
+.acct-count-hidden {
+  color: var(--ink-faint);
+}
+
+/* ── Row action buttons (Edit / Hide / Show / Delete) ── */
+.itype-edit-btn,
+.itype-del-btn,
+.acct-hide-btn,
+.acct-show-btn {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  background: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+
+.itype-edit-btn,
+.acct-hide-btn {
+  color: var(--ink-muted);
+}
+.itype-edit-btn:hover,
+.acct-hide-btn:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+
+.acct-show-btn {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.acct-show-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.itype-del-btn {
+  color: var(--bad);
+  border-color: var(--rule-strong);
+}
+.itype-del-btn:hover {
+  background: var(--bad-bg);
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+/* ── Modal field row for "Column key" display ── */
+.modal-field-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-field-tag {
+  font-size: 12px;
+  font-family: var(--font-mono, monospace);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 3px 8px;
+  color: var(--ink-sub);
+}
