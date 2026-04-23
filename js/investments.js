@@ -273,9 +273,11 @@ async function deleteInvestment(id) {
 
 async function _autoComputeGainLoss(record, savedField) {
   const totalField = typeof getDashTotalField === 'function' ? getDashTotalField() : null;
-  if (!totalField || savedField !== totalField) return;
+  if (!totalField) return;
 
   const glField      = typeof getGainLossField === 'function' ? getGainLossField('investments') : 'gainLoss';
+  if (savedField === glField) return; // don't re-trigger when gain/loss itself was saved
+
   const currentTotal = record[totalField];
   if (currentTotal == null) return;
 
