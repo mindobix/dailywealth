@@ -178,9 +178,13 @@ async function _saveCellChange(storeName, recId, field, newVal, type) {
     await _autoComputeGainLoss(record, field).catch(() => {});
   }
 
-  // Re-render the relevant tab (both stay in sync)
-  if (storeName === 'investments') renderInvestmentsGrid();
-  else                              renderPlans529Grid();
+  // Re-render the relevant tab(s)
+  if (storeName === 'investments') {
+    renderInvestmentsGrid();
+    if (typeof renderKidsGrid === 'function') renderKidsGrid();
+  } else {
+    renderPlans529Grid();
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
