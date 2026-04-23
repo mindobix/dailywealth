@@ -14,7 +14,8 @@ let _dashAcktgTotals   = null;           // { totalDeposits, totalRmds, totalWit
 let _dashCashEntries   = [];             // type:'cash' accounting entries for active client
 let _dashAllAccounts   = [];             // all account records for name lookup
 let _dashLatest529Date = null;           // last-entered date across all 529 records
-let _dashGainLossField = 'gainLoss';     // designated gain/loss field for active client
+let _dashGainLossField     = 'gainLoss';  // designated gain/loss field for active client
+let _dashSecondaryComputed = null;        // computed field marked as secondary total
 
 function getDashTotalField() { return _dashTotalField; }
 
@@ -121,6 +122,9 @@ async function initDashboardView() {
   _dashTotalComputed   = allComputeds.find(
     c => c.clientId === clientId && c.tab === 'investments' && c.useForTotal
   ) || null;
+  _dashSecondaryComputed = allComputeds.find(
+    c => c.clientId === clientId && c.tab === 'investments' && c.useForSecondaryTotal
+  ) || null;
   _dashTotalField      = _dashTotalComputed ? null : _dashDetectTotalField(_dashInvRecs);
 
   _dashP529Recs = all529
@@ -215,6 +219,14 @@ function _renderDashboard() {
     ? latestVal + total529 + kidsTotal
     : null;
 
+  // Secondary investments total — from designated computed field
+  let secondaryTotal = null;
+  if (_dashSecondaryComputed && _dashInvRecs.length) {
+    const sf = _dashSecondaryComputed.fields;
+    const val = sf.reduce((s, f) => s + (typeof latest[f] === 'number' ? latest[f] : 0), 0);
+    if (sf.some(f => latest[f] != null)) secondaryTotal = val;
+  }
+
   // True Return calculation using accounting totals
   let trueReturn = null;
   if (_dashAcktgTotals && latestVal !== null && _dashInvRecs.length > 0) {
@@ -250,6 +262,7 @@ function _renderDashboard() {
         ${kidsTotal !== null ? _statCard('Kids Total', kidsTotal, 'cur', _dFmtDate(latestKidsRec.date)) : ''}
         ${combinedTotal !== null ? _statCard('Combined Total', combinedTotal, 'cur', 'Investments + 529 Plans') : ''}
         ${grandTotal   !== null ? _statCard('Grand Total',    grandTotal,    'cur', 'Investments + 529 + Kids') : ''}
+        ${secondaryTotal !== null ? _statCard(_dEsc(_dashSecondaryComputed.name), secondaryTotal, 'cur', _dFmtDate(latestDateRec.date)) : ''}
       </div>
     </div>
 

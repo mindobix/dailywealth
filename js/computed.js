@@ -55,7 +55,8 @@ function openComputedModal(id) {
   tabSel.value    = c?.tab || (typeof _acctTabFilter !== 'undefined' ? _acctTabFilter : 'investments');
   tabSel.disabled = !!c;
 
-  document.getElementById('comp-modal-use-total').checked = c?.useForTotal || false;
+  document.getElementById('comp-modal-use-total').checked      = c?.useForTotal          || false;
+  document.getElementById('comp-modal-use-secondary').checked = c?.useForSecondaryTotal || false;
   _renderComputedCheckboxes(tabSel.value, c?.fields || []);
   document.getElementById('comp-modal-error').textContent = '';
   document.getElementById('comp-modal').style.display = 'flex';
@@ -116,17 +117,23 @@ async function saveComputedModal() {
     order = (tabItems.length ? Math.max(...tabItems) : -1) + 1;
   }
 
-  const useForTotal = document.getElementById('comp-modal-use-total').checked;
+  const useForTotal          = document.getElementById('comp-modal-use-total').checked;
+  const useForSecondaryTotal = document.getElementById('comp-modal-use-secondary').checked;
 
   // Only one computed field per tab+client can be the dashboard total
   if (useForTotal) {
     const rivals = _computeds.filter(c => c.id !== id && c.tab === tab && c.useForTotal);
     for (const o of rivals) await saveComputedField({ ...o, useForTotal: false });
   }
+  // Only one computed field per tab+client can be the secondary total
+  if (useForSecondaryTotal) {
+    const rivals = _computeds.filter(c => c.id !== id && c.tab === tab && c.useForSecondaryTotal);
+    for (const o of rivals) await saveComputedField({ ...o, useForSecondaryTotal: false });
+  }
 
   await saveComputedField({
     id, clientId: existing?.clientId || clientId,
-    tab, name, fields: checked, order, useForTotal,
+    tab, name, fields: checked, order, useForTotal, useForSecondaryTotal,
     createdAt: existing?.createdAt || Date.now(),
   });
 
