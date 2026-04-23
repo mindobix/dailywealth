@@ -504,8 +504,8 @@ function _acktgBorrowedRow(e) {
   return `<tr id="acktg-borrow-row-${_aEscAttr(e.id)}">
     <td class="acktg-td-date">${gFmtDate(e.date) || e.date}</td>
     <td class="acktg-td-amt">${gFmtCurrency(e.amount)}</td>
-    <td class="acktg-td-account">${_aEsc(e.from || '')}</td>
-    <td class="acktg-td-account">${_aEsc(e.to || '')}</td>
+    <td class="acktg-td-account">${_aEsc(_acktgAccountName(e.fromAccount))}</td>
+    <td class="acktg-td-account">${_aEsc(_acktgAccountName(e.toAccount))}</td>
     <td class="acktg-td-notes">${_aEsc(e.notes || '')}</td>
     <td class="acktg-td-actions">
       <button class="acktg-edit-btn" onclick="acktgStartEditBorrowed('${_aEscAttr(e.id)}')">Edit</button>
@@ -541,20 +541,21 @@ function acktgStartAddBorrowed() {
   }
 
   if (tbody.querySelector('.acktg-new-row')) {
-    tbody.querySelector('.acktg-new-row input')?.focus();
+    tbody.querySelector('.acktg-new-row input, .acktg-new-row select')?.focus();
     return;
   }
 
   const today  = new Date().toLocaleDateString('en-CA');
   const tempId = 'new-borrowed';
+  const opts   = _acktgAccountOptions();
 
   const tr = document.createElement('tr');
   tr.className = 'acktg-new-row';
   tr.innerHTML = `
     <td><input class="acktg-inline-input" type="date" id="aie-date-${tempId}" value="${today}"></td>
     <td><input class="acktg-inline-input acktg-inline-amt" type="text" id="aie-amt-${tempId}" placeholder="0.00" inputmode="decimal"></td>
-    <td><input class="acktg-inline-input" type="text" id="aie-from-${tempId}" placeholder="From…" maxlength="120"></td>
-    <td><input class="acktg-inline-input" type="text" id="aie-to-${tempId}" placeholder="To…" maxlength="120"></td>
+    <td><select class="acktg-inline-sel" id="aie-from-${tempId}">${opts}</select></td>
+    <td><select class="acktg-inline-sel" id="aie-to-${tempId}">${opts}</select></td>
     <td><input class="acktg-inline-input acktg-inline-notes" type="text" id="aie-notes-${tempId}" placeholder="Notes…" maxlength="200"></td>
     <td class="acktg-td-actions">
       <button class="acktg-save-btn"   onclick="acktgSaveAddBorrowed()">Save</button>
@@ -566,21 +567,23 @@ function acktgStartAddBorrowed() {
 }
 
 async function acktgSaveAddBorrowed() {
-  const tempId    = 'new-borrowed';
-  const date      = document.getElementById(`aie-date-${tempId}`)?.value  || '';
-  const amountRaw = document.getElementById(`aie-amt-${tempId}`)?.value   || '';
-  const from      = document.getElementById(`aie-from-${tempId}`)?.value.trim() || '';
-  const to        = document.getElementById(`aie-to-${tempId}`)?.value.trim()   || '';
-  const notes     = document.getElementById(`aie-notes-${tempId}`)?.value.trim() || '';
+  const tempId      = 'new-borrowed';
+  const date        = document.getElementById(`aie-date-${tempId}`)?.value  || '';
+  const amountRaw   = document.getElementById(`aie-amt-${tempId}`)?.value   || '';
+  const fromAccount = document.getElementById(`aie-from-${tempId}`)?.value  || '';
+  const toAccount   = document.getElementById(`aie-to-${tempId}`)?.value    || '';
+  const notes       = document.getElementById(`aie-notes-${tempId}`)?.value.trim() || '';
 
   if (!date)                                { document.getElementById(`aie-date-${tempId}`)?.focus(); return; }
   const amount = parseFloat(String(amountRaw).replace(/[$,]/g, ''));
   if (isNaN(amount) || amount <= 0)         { document.getElementById(`aie-amt-${tempId}`)?.focus();  return; }
+  if (!fromAccount)                         { document.getElementById(`aie-from-${tempId}`)?.focus(); return; }
+  if (!toAccount)                           { document.getElementById(`aie-to-${tempId}`)?.focus();   return; }
 
   const id       = 'acktg_' + uid();
   const clientId = getActiveClientId();
 
-  await saveAccountingEntry({ id, clientId, type: 'borrowed', date, amount, from, to, notes });
+  await saveAccountingEntry({ id, clientId, type: 'borrowed', date, amount, fromAccount, toAccount, notes });
   _acktgEntries = await getAccountingEntries();
   _renderAccountingView();
 }
@@ -593,17 +596,21 @@ function acktgStartEditBorrowed(id) {
 
   const safeId = _aEscAttr(id);
 
+  const opts = _acktgAccountOptions();
+
   tr.innerHTML = `
     <td><input class="acktg-inline-input" type="date" id="aie-date-${safeId}" value="${_aVal(e.date)}"></td>
     <td><input class="acktg-inline-input acktg-inline-amt" type="text" id="aie-amt-${safeId}" value="${e.amount}" inputmode="decimal"></td>
-    <td><input class="acktg-inline-input" type="text" id="aie-from-${safeId}" value="${_aVal(e.from || '')}" maxlength="120"></td>
-    <td><input class="acktg-inline-input" type="text" id="aie-to-${safeId}" value="${_aVal(e.to || '')}" maxlength="120"></td>
+    <td><select class="acktg-inline-sel" id="aie-from-${safeId}">${opts}</select></td>
+    <td><select class="acktg-inline-sel" id="aie-to-${safeId}">${opts}</select></td>
     <td><input class="acktg-inline-input acktg-inline-notes" type="text" id="aie-notes-${safeId}" value="${_aVal(e.notes || '')}" maxlength="200"></td>
     <td class="acktg-td-actions">
       <button class="acktg-save-btn"   onclick="acktgSaveEditBorrowed('${safeId}')">Save</button>
       <button class="acktg-cancel-btn" onclick="_renderAccountingView()">Cancel</button>
     </td>`;
 
+  document.getElementById(`aie-from-${id}`).value = e.fromAccount || '';
+  document.getElementById(`aie-to-${id}`).value   = e.toAccount   || '';
   document.getElementById(`aie-amt-${id}`).focus();
 }
 
@@ -611,17 +618,19 @@ async function acktgSaveEditBorrowed(id) {
   const e = _acktgEntries.find(x => x.id === id);
   if (!e) return;
 
-  const date      = document.getElementById(`aie-date-${id}`)?.value  || '';
-  const amountRaw = document.getElementById(`aie-amt-${id}`)?.value   || '';
-  const from      = document.getElementById(`aie-from-${id}`)?.value.trim() || '';
-  const to        = document.getElementById(`aie-to-${id}`)?.value.trim()   || '';
-  const notes     = document.getElementById(`aie-notes-${id}`)?.value.trim() || '';
+  const date        = document.getElementById(`aie-date-${id}`)?.value  || '';
+  const amountRaw   = document.getElementById(`aie-amt-${id}`)?.value   || '';
+  const fromAccount = document.getElementById(`aie-from-${id}`)?.value  || '';
+  const toAccount   = document.getElementById(`aie-to-${id}`)?.value    || '';
+  const notes       = document.getElementById(`aie-notes-${id}`)?.value.trim() || '';
 
   if (!date)                                { document.getElementById(`aie-date-${id}`)?.focus(); return; }
   const amount = parseFloat(String(amountRaw).replace(/[$,]/g, ''));
   if (isNaN(amount) || amount <= 0)         { document.getElementById(`aie-amt-${id}`)?.focus();  return; }
+  if (!fromAccount)                         { document.getElementById(`aie-from-${id}`)?.focus(); return; }
+  if (!toAccount)                           { document.getElementById(`aie-to-${id}`)?.focus();   return; }
 
-  await saveAccountingEntry({ ...e, date, amount, from, to, notes });
+  await saveAccountingEntry({ ...e, date, amount, fromAccount, toAccount, notes });
   _acktgEntries = await getAccountingEntries();
   _renderAccountingView();
 }
