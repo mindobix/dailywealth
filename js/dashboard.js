@@ -125,20 +125,16 @@ async function initDashboardView() {
   _dashTotalField      = _dashTotalComputed ? null : _dashDetectTotalField(_dashInvRecs);
 
   _dashP529Recs = all529
-    .filter(r => r.clientId === clientId && r.date && r.total529 != null)
+    .filter(r => r.clientId === clientId && r.date)
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 
   if (!_dashP529Recs.length) {
     _dashP529Recs = all529
-      .filter(r => !r.clientId && r.date && r.total529 != null)
+      .filter(r => !r.clientId && r.date)
       .sort((a, b) => (a.date < b.date ? -1 : 1));
   }
 
-  // Last-entered date across all 529 records (regardless of whether total529 is filled)
-  const all529ForClient = all529.filter(r => (r.clientId === clientId || !r.clientId) && r.date);
-  _dashLatest529Date = all529ForClient.length
-    ? all529ForClient.sort((a, b) => (a.date < b.date ? -1 : 1)).at(-1).date
-    : null;
+  _dashLatest529Date = _dashP529Recs.length ? _dashP529Recs.at(-1).date : null;
 
   const acktgFiltered = allAcktgRaw.filter(e => e.clientId === clientId);
   _dashAcktgTotals = {
@@ -185,8 +181,9 @@ function _renderDashboard() {
   const y1Rec  = _dashInvRecs.find(r => r.date >= y1Str && _dashTotalVal(r) !== null);
   const y1Ret  = (y1Rec && latestVal !== null) ? ((latestVal - _dashTotalVal(y1Rec)) / _dashTotalVal(y1Rec) * 100) : null;
 
-  const latestP529 = _dashP529Recs.length ? _dashP529Recs[_dashP529Recs.length - 1] : null;
-  const total529   = latestP529?.total529 ?? null;
+  const latestP529     = _dashP529Recs.length ? _dashP529Recs.at(-1) : null;
+  const latestP529Val  = [..._dashP529Recs].reverse().find(r => r.total529 != null);
+  const total529       = latestP529Val?.total529 ?? null;
 
   // Combined total — investments + 529 plans
   const combinedTotal = (latestVal !== null && total529 !== null) ? latestVal + total529 : null;
