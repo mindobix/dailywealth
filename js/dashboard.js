@@ -16,6 +16,7 @@ let _dashAllAccounts   = [];             // all account records for name lookup
 let _dashLatest529Date = null;           // last-entered date across all 529 records
 let _dashGainLossField     = 'gainLoss';  // designated gain/loss field for active client
 let _dashSecondaryComputed = null;        // computed field marked as secondary total
+let _dashBorrowedByAccount = {};          // accountId → total borrowed FROM that account
 
 function getDashTotalField() { return _dashTotalField; }
 
@@ -141,6 +142,12 @@ async function initDashboardView() {
     totalWithdrawals: acktgFiltered.filter(e => e.type === 'withdrawal').reduce((s, e) => s + e.amount, 0),
   };
   _dashCashEntries = acktgFiltered.filter(e => e.type === 'cash');
+
+  _dashBorrowedByAccount = {};
+  for (const e of acktgFiltered.filter(e => e.type === 'borrowed' && e.fromAccount)) {
+    _dashBorrowedByAccount[e.fromAccount] = (_dashBorrowedByAccount[e.fromAccount] || 0) + (e.amount || 0);
+  }
+
   _dashAllAccounts = allAcctsRaw;
 
   const glAcct = allAcctsRaw.find(a => a.clientId === clientId && a.tab === 'investments' && a.useForGainLoss && !a.hidden);
@@ -201,9 +208,6 @@ function _renderDashboard() {
     }
   }
 
-  // Combined total — investments + 529 plans
-  const combinedTotal = (latestVal !== null && total529 !== null) ? latestVal + total529 : null;
-
   // Kids total — sum of all kids-tab accounts from latest investment record that has kids data
   const clientId    = getActiveClientId();
   const kidsAccts   = _dashAllAccounts.filter(a => a.clientId === clientId && a.tab === 'kids' && !a.hidden && a.field);
@@ -214,9 +218,20 @@ function _renderDashboard() {
     ? kidsAccts.reduce((s, a) => s + (typeof latestKidsRec[a.field] === 'number' ? latestKidsRec[a.field] : 0), 0)
     : null;
 
-  // Grand total — investments + 529 plans + kids
-  const grandTotal = (latestVal !== null && total529 !== null && kidsTotal !== null)
-    ? latestVal + total529 + kidsTotal
+  // Borrowed adjustments — add borrowed-FROM amounts to respective tab totals (display only)
+  const invAccts       = _dashAllAccounts.filter(a => a.clientId === clientId && a.tab === 'investments' && !a.hidden);
+  const borrowFromInv  = invAccts.reduce((s, a)    => s + (_dashBorrowedByAccount[a.id] || 0), 0);
+  const borrowFrom529  = p529Accts.reduce((s, a)   => s + (_dashBorrowedByAccount[a.id] || 0), 0);
+  const borrowFromKids = kidsAccts.reduce((s, a)   => s + (_dashBorrowedByAccount[a.id] || 0), 0);
+
+  const displayInvVal = latestVal !== null ? latestVal + borrowFromInv : null;
+  const display529    = total529  !== null ? total529  + borrowFrom529 : null;
+  const displayKids   = kidsTotal !== null ? kidsTotal + borrowFromKids : null;
+
+  // Combined / grand use display-adjusted values
+  const combinedTotal = (displayInvVal !== null && display529 !== null) ? displayInvVal + display529 : null;
+  const grandTotal    = (displayInvVal !== null && display529 !== null && displayKids !== null)
+    ? displayInvVal + display529 + displayKids
     : null;
 
   // Secondary investments total — from designated computed field
@@ -242,14 +257,14 @@ function _renderDashboard() {
 
       <div class="dash-hero-card">
         <div class="dash-hero-label">${_dashTotalComputed ? _dEsc(_dashTotalComputed.name) : 'Total Portfolio'}</div>
-        <div class="dash-hero-value">${_dFmtCur(latestVal)}</div>
+        <div class="dash-hero-value">${_dFmtCur(displayInvVal ?? latestVal)}</div>
         <div class="dash-hero-date">${_dFmtDate(latestDateRec.date)}</div>
         ${portfolioDelta !== null ? `
           <div class="dash-hero-delta ${portfolioDelta >= 0 ? 'pos' : 'neg'}">
             <span class="dash-delta-arrow">${portfolioDelta >= 0 ? '▲' : '▼'}</span>
             ${_dFmtSigned(portfolioDelta)} from previous week
           </div>` : ''}
-        ${_heroSubTotals(total529, kidsTotal, combinedTotal, grandTotal, secondaryTotal, latestKidsRec)}
+        ${_heroSubTotals(display529, displayKids, combinedTotal, grandTotal, secondaryTotal, latestKidsRec)}
       </div>
 
       <div class="dash-stat-cards">
