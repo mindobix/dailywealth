@@ -67,7 +67,8 @@ async function _migrateExistingRecords(clientId) {
 // ACTIVE CLIENT
 // ─────────────────────────────────────────────────────────────────
 
-function getActiveClientId() { return _activeClientId; }
+function getActiveClientId()  { return _activeClientId; }
+function isMultiClient()      { return _clients.length > 1; }
 
 function setActiveClient(id) {
   _activeClientId = id;

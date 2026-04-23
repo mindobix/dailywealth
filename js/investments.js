@@ -56,7 +56,7 @@ async function renderInvestmentsGrid() {
   const month  = document.getElementById('inv-month').value;
 
   const activeClientId = getActiveClientId();
-  if (activeClientId) records = records.filter(r => r.clientId === activeClientId || !r.clientId);
+  if (activeClientId) records = records.filter(r => r.clientId === activeClientId || (!isMultiClient() && !r.clientId));
 
   if (year)   records = records.filter(r => r.date?.startsWith(year));
   if (month)  records = records.filter(r => r.date?.slice(5, 7) === month);
@@ -272,25 +272,32 @@ async function deleteInvestment(id) {
 // ─────────────────────────────────────────────────────────────────
 
 async function _autoComputeGainLoss(record, savedField) {
-  const glField = typeof getGainLossField === 'function' ? getGainLossField('investments') : 'gainLoss';
+  const glField  = typeof getGainLossField === 'function' ? getGainLossField('investments') : 'gainLoss';
   if (savedField === glField) return;
 
-  const clientId = record.clientId || (typeof getActiveClientId === 'function' ? getActiveClientId() : '');
+  // Strict client isolation — stamp clientId if missing so the record belongs to this client
+  const clientId = typeof getActiveClientId === 'function' ? getActiveClientId() : '';
+  if (!clientId) return;
+  if (!record.clientId) {
+    record.clientId = clientId;
+    await dbPut('investments', record);
+  }
 
-  // Sum individual account fields (read from DB so accounts are always fresh)
+  // Account fields are strictly per-client
   const allAccts   = await getAccounts();
   const acctFields = allAccts
-    .filter(a => (a.clientId === clientId || !a.clientId) && a.tab === 'investments' && !a.hidden && a.field && a.field !== glField)
+    .filter(a => a.clientId === clientId && a.tab === 'investments' && !a.hidden && a.field && a.field !== glField)
     .map(a => a.field);
   if (!acctFields.length) return;
 
-  const sumFields   = r => acctFields.reduce((s, f) => s + (typeof r[f] === 'number' ? r[f] : 0), 0);
+  const sumFields    = r => acctFields.reduce((s, f) => s + (typeof r[f] === 'number' ? r[f] : 0), 0);
   const currentTotal = sumFields(record);
   if (currentTotal === 0) return;
 
+  // Strictly client-matched records only — no cross-client contamination
   const all    = await dbGetAll('investments');
   const sorted = all
-    .filter(r => r.id !== record.id && r.date && (r.clientId === clientId || !r.clientId) && acctFields.some(f => r[f] != null))
+    .filter(r => r.id !== record.id && r.date && r.clientId === clientId && acctFields.some(f => r[f] != null))
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 
   const prev = [...sorted].reverse().find(r => r.date < record.date) ?? null;

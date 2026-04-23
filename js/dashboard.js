@@ -101,16 +101,19 @@ function _dashDetectTotalField(records) {
 async function initDashboardView() {
   const clientId = getActiveClientId();
 
-  const [allInv, all529, allAcktgRaw, allAcctsRaw] = await Promise.all([
+  const [allInv, all529, allAcktgRaw, allAcctsRaw, allClients] = await Promise.all([
     dbGetAll('investments'),
     dbGetAll('plans529'),
     dbGetAll('accountingEntries'),
     dbGetAll('accounts'),
+    dbGetAll('clients'),
   ]);
 
-  // Match grid filter: clientId matches OR no clientId (manually added rows before fix)
+  // Include no-clientId records only when there is a single client (legacy imports)
+  const multiClient = allClients.length > 1;
   _dashInvRecs = allInv
-    .filter(r => (r.clientId === clientId || !r.clientId) && r.date)
+    .filter(r => r.clientId === clientId || (!multiClient && !r.clientId))
+    .filter(r => r.date)
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 
   // Check if any computed field is marked as the dashboard total
@@ -121,7 +124,8 @@ async function initDashboardView() {
   _dashTotalField      = _dashTotalComputed ? null : _dashDetectTotalField(_dashInvRecs);
 
   _dashP529Recs = all529
-    .filter(r => (r.clientId === clientId || !r.clientId) && r.date)
+    .filter(r => r.clientId === clientId || (!multiClient && !r.clientId))
+    .filter(r => r.date)
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 
   _dashLatest529Date = _dashP529Recs.length ? _dashP529Recs.at(-1).date : null;

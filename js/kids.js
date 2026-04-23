@@ -54,7 +54,7 @@ async function renderKidsGrid() {
   const month  = document.getElementById('kid-month').value;
 
   const activeClientId = getActiveClientId();
-  if (activeClientId) records = records.filter(r => r.clientId === activeClientId || !r.clientId);
+  if (activeClientId) records = records.filter(r => r.clientId === activeClientId || (!isMultiClient() && !r.clientId));
 
   if (year)   records = records.filter(r => r.date?.startsWith(year));
   if (month)  records = records.filter(r => r.date?.slice(5, 7) === month);
