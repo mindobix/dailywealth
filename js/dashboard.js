@@ -13,6 +13,7 @@ let _dashTotalComputed = null;            // computed field set as dashboard tot
 let _dashAcktgTotals   = null;           // { totalDeposits, totalRmds, totalWithdrawals } or null
 let _dashCashEntries   = [];             // type:'cash' accounting entries for active client
 let _dashAllAccounts   = [];             // all account records for name lookup
+let _dashLatest529Date = null;           // last-entered date across all 529 records
 
 // chart hover state
 let _dashChartPoints  = [];
@@ -133,6 +134,12 @@ async function initDashboardView() {
       .sort((a, b) => (a.date < b.date ? -1 : 1));
   }
 
+  // Last-entered date across all 529 records (regardless of whether total529 is filled)
+  const all529ForClient = all529.filter(r => (r.clientId === clientId || !r.clientId) && r.date);
+  _dashLatest529Date = all529ForClient.length
+    ? all529ForClient.sort((a, b) => (a.date < b.date ? -1 : 1)).at(-1).date
+    : null;
+
   const acktgFiltered = allAcktgRaw.filter(e => e.clientId === clientId);
   _dashAcktgTotals = {
     totalDeposits:    acktgFiltered.filter(e => e.type === 'deposit').reduce((s, e) => s + e.amount, 0),
@@ -224,8 +231,8 @@ function _renderDashboard() {
         ${_statCard('1-Year Return',       y1Ret,   'pct',  '12-month period')}
         ${trueReturn !== null
           ? _statCard('True Return', trueReturn, 'gain', 'Since inception – net invested')
-          : (total529 !== null ? _statCard('529 Plans Total', total529, 'cur', _dFmtDate(latestP529.date)) : _statCardBlank('529 Plans', 'No data'))}
-        ${trueReturn !== null && total529 !== null ? _statCard('529 Plans Total', total529, 'cur', _dFmtDate(latestP529.date)) : ''}
+          : (total529 !== null ? _statCard('529 Plans Total', total529, 'cur', _dFmtDate(_dashLatest529Date)) : _statCardBlank('529 Plans', 'No data'))}
+        ${trueReturn !== null && total529 !== null ? _statCard('529 Plans Total', total529, 'cur', _dFmtDate(_dashLatest529Date)) : ''}
         ${kidsTotal !== null ? _statCard('Kids Total', kidsTotal, 'cur', _dFmtDate(latestKidsRec.date)) : ''}
         ${combinedTotal !== null ? _statCard('Combined Total', combinedTotal, 'cur', 'Investments + 529 Plans') : ''}
       </div>
