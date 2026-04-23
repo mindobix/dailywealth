@@ -162,7 +162,8 @@ function _renderDashboard() {
 
   const ytdRecs   = _dashInvRecs.filter(r => r.date >= `${yr}-01-01`);
   const ytdGain   = ytdRecs.reduce((s, r) => s + (r.gainLoss || 0), 0);
-  const weekGain  = latest.gainLoss ?? null;
+  const weekGainRec = [..._dashInvRecs].reverse().find(r => typeof r.gainLoss === 'number');
+  const weekGain    = weekGainRec?.gainLoss ?? null;
   const latestVal = _dashTotalVal(latest);
   const prevVal   = prev ? _dashTotalVal(prev) : null;
   const portfolioDelta = (latestVal !== null && prevVal !== null) ? latestVal - prevVal : null;
