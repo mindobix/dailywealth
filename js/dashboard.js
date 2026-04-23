@@ -715,7 +715,7 @@ async function _dashRenderBreakdown(latestRecord) {
   const allAccts  = await getAccounts();
   const clientId  = getActiveClientId();
   const shown     = allAccts
-    .filter(a => a.clientId === clientId && a.tab === 'investments' && !a.hidden)
+    .filter(a => a.clientId === clientId && a.tab === 'investments' && !a.hidden && !a.useForGainLoss)
     .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
 
   // For accounts that have a cash entry, use the cash entry amount as the base
