@@ -38,15 +38,17 @@ function _renderAccountingView() {
   const clientId = getActiveClientId();
   const entries  = _acktgEntries.filter(e => !clientId || e.clientId === clientId);
 
-  const deposits    = entries.filter(e => e.type === 'deposit').sort((a, b) => a.date < b.date ? -1 : 1);
-  const rmds        = entries.filter(e => e.type === 'rmd').sort((a, b) => a.date < b.date ? -1 : 1);
-  const withdrawals = entries.filter(e => e.type === 'withdrawal').sort((a, b) => a.date < b.date ? -1 : 1);
-  const cashEntries = entries.filter(e => e.type === 'cash').sort((a, b) => a.updatedAt > b.updatedAt ? -1 : 1);
+  const deposits       = entries.filter(e => e.type === 'deposit').sort((a, b) => a.date < b.date ? -1 : 1);
+  const rmds           = entries.filter(e => e.type === 'rmd').sort((a, b) => a.date < b.date ? -1 : 1);
+  const withdrawals    = entries.filter(e => e.type === 'withdrawal').sort((a, b) => a.date < b.date ? -1 : 1);
+  const cashEntries    = entries.filter(e => e.type === 'cash').sort((a, b) => a.updatedAt > b.updatedAt ? -1 : 1);
+  const borrowedEntries = entries.filter(e => e.type === 'borrowed').sort((a, b) => a.date < b.date ? -1 : 1);
 
   const totalDeposits    = deposits.reduce((s, e) => s + e.amount, 0);
   const totalRmds        = rmds.reduce((s, e) => s + e.amount, 0);
   const totalWithdrawals = withdrawals.reduce((s, e) => s + e.amount, 0);
   const totalCash        = cashEntries.reduce((s, e) => s + e.amount, 0);
+  const totalBorrowed    = borrowedEntries.reduce((s, e) => s + e.amount, 0);
 
   const body = document.getElementById('acktg-body');
   if (!body) return;
@@ -57,6 +59,7 @@ function _renderAccountingView() {
       ${_acktgSection('rmd',        'RMDs',        rmds,        totalRmds)}
       ${_acktgSection('withdrawal', 'Withdrawals', withdrawals, totalWithdrawals)}
       ${_acktgCashSection(cashEntries, totalCash)}
+      ${_acktgBorrowedSection(borrowedEntries, totalBorrowed)}
     </div>
     <div class="acktg-summary">
       <div class="acktg-summary-title">Net Summary</div>
@@ -76,6 +79,10 @@ function _renderAccountingView() {
       <div class="acktg-summary-row acktg-summary-net">
         <span class="acktg-summary-label">Total Cash</span>
         <span class="acktg-summary-val">${gFmtCurrency(totalCash)}</span>
+      </div>
+      <div class="acktg-summary-row">
+        <span class="acktg-summary-label">Total Borrowed</span>
+        <span class="acktg-summary-val">${gFmtCurrency(totalBorrowed)}</span>
       </div>
     </div>
   `;
@@ -399,6 +406,162 @@ async function acktgSaveAdd(type) {
 
 async function deleteAcktgEntry(id) {
   if (!confirm('Delete this entry? This cannot be undone.')) return;
+  await deleteAccountingEntry(id);
+  _acktgEntries = _acktgEntries.filter(e => e.id !== id);
+  _renderAccountingView();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BORROWED SECTION
+// ─────────────────────────────────────────────────────────────────
+
+function _acktgBorrowedSection(entries, total) {
+  const rows = entries.length
+    ? entries.map(e => _acktgBorrowedRow(e)).join('')
+    : `<tr class="acktg-empty" id="acktg-empty-borrowed"><td colspan="6">No borrowed entries yet</td></tr>`;
+
+  return `
+    <div class="acktg-section">
+      <div class="acktg-section-hd">
+        <span class="acktg-section-title">Borrowed</span>
+        <button class="acktg-add-btn" onclick="acktgStartAddBorrowed()">+ Add borrowed</button>
+      </div>
+      <div class="acktg-table-wrap">
+        <table class="acktg-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th class="acktg-th-amt">Amount</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="acktg-tbody-borrowed">
+            ${rows}
+          </tbody>
+          <tfoot>
+            <tr class="acktg-total-row">
+              <td>Total</td>
+              <td class="acktg-td-amt">${gFmtCurrency(total)}</td>
+              <td></td><td></td><td></td><td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>`;
+}
+
+function _acktgBorrowedRow(e) {
+  return `<tr id="acktg-borrow-row-${_aEscAttr(e.id)}">
+    <td class="acktg-td-date">${gFmtDate(e.date) || e.date}</td>
+    <td class="acktg-td-amt">${gFmtCurrency(e.amount)}</td>
+    <td class="acktg-td-account">${_aEsc(e.from || '')}</td>
+    <td class="acktg-td-account">${_aEsc(e.to || '')}</td>
+    <td class="acktg-td-notes">${_aEsc(e.notes || '')}</td>
+    <td class="acktg-td-actions">
+      <button class="acktg-edit-btn" onclick="acktgStartEditBorrowed('${_aEscAttr(e.id)}')">Edit</button>
+      <button class="acktg-del-btn"  onclick="deleteBorrowedEntry('${_aEscAttr(e.id)}')">Delete</button>
+    </td>
+  </tr>`;
+}
+
+function acktgStartAddBorrowed() {
+  const tbody = document.getElementById('acktg-tbody-borrowed');
+  if (!tbody) return;
+
+  if (tbody.querySelector('.acktg-new-row')) {
+    tbody.querySelector('.acktg-new-row input')?.focus();
+    return;
+  }
+
+  const emptyRow = document.getElementById('acktg-empty-borrowed');
+  if (emptyRow) emptyRow.remove();
+
+  const today  = new Date().toLocaleDateString('en-CA');
+  const tempId = 'new-borrowed';
+
+  const tr = document.createElement('tr');
+  tr.className = 'acktg-new-row';
+  tr.innerHTML = `
+    <td><input class="acktg-inline-input" type="date" id="aie-date-${tempId}" value="${today}"></td>
+    <td><input class="acktg-inline-input acktg-inline-amt" type="text" id="aie-amt-${tempId}" placeholder="0.00" inputmode="decimal"></td>
+    <td><input class="acktg-inline-input" type="text" id="aie-from-${tempId}" placeholder="From…" maxlength="120"></td>
+    <td><input class="acktg-inline-input" type="text" id="aie-to-${tempId}" placeholder="To…" maxlength="120"></td>
+    <td><input class="acktg-inline-input acktg-inline-notes" type="text" id="aie-notes-${tempId}" placeholder="Notes…" maxlength="200"></td>
+    <td class="acktg-td-actions">
+      <button class="acktg-save-btn"   onclick="acktgSaveAddBorrowed()">Save</button>
+      <button class="acktg-cancel-btn" onclick="_renderAccountingView()">Cancel</button>
+    </td>`;
+
+  tbody.insertBefore(tr, tbody.firstChild);
+  document.getElementById(`aie-amt-${tempId}`).focus();
+}
+
+async function acktgSaveAddBorrowed() {
+  const tempId    = 'new-borrowed';
+  const date      = document.getElementById(`aie-date-${tempId}`)?.value  || '';
+  const amountRaw = document.getElementById(`aie-amt-${tempId}`)?.value   || '';
+  const from      = document.getElementById(`aie-from-${tempId}`)?.value.trim() || '';
+  const to        = document.getElementById(`aie-to-${tempId}`)?.value.trim()   || '';
+  const notes     = document.getElementById(`aie-notes-${tempId}`)?.value.trim() || '';
+
+  if (!date)                                { document.getElementById(`aie-date-${tempId}`)?.focus(); return; }
+  const amount = parseFloat(String(amountRaw).replace(/[$,]/g, ''));
+  if (isNaN(amount) || amount <= 0)         { document.getElementById(`aie-amt-${tempId}`)?.focus();  return; }
+
+  const id       = 'acktg_' + uid();
+  const clientId = getActiveClientId();
+
+  await saveAccountingEntry({ id, clientId, type: 'borrowed', date, amount, from, to, notes });
+  _acktgEntries = await getAccountingEntries();
+  _renderAccountingView();
+}
+
+function acktgStartEditBorrowed(id) {
+  const e = _acktgEntries.find(x => x.id === id);
+  if (!e) return;
+  const tr = document.getElementById('acktg-borrow-row-' + id);
+  if (!tr) return;
+
+  const safeId = _aEscAttr(id);
+
+  tr.innerHTML = `
+    <td><input class="acktg-inline-input" type="date" id="aie-date-${safeId}" value="${_aVal(e.date)}"></td>
+    <td><input class="acktg-inline-input acktg-inline-amt" type="text" id="aie-amt-${safeId}" value="${e.amount}" inputmode="decimal"></td>
+    <td><input class="acktg-inline-input" type="text" id="aie-from-${safeId}" value="${_aVal(e.from || '')}" maxlength="120"></td>
+    <td><input class="acktg-inline-input" type="text" id="aie-to-${safeId}" value="${_aVal(e.to || '')}" maxlength="120"></td>
+    <td><input class="acktg-inline-input acktg-inline-notes" type="text" id="aie-notes-${safeId}" value="${_aVal(e.notes || '')}" maxlength="200"></td>
+    <td class="acktg-td-actions">
+      <button class="acktg-save-btn"   onclick="acktgSaveEditBorrowed('${safeId}')">Save</button>
+      <button class="acktg-cancel-btn" onclick="_renderAccountingView()">Cancel</button>
+    </td>`;
+
+  document.getElementById(`aie-amt-${id}`).focus();
+}
+
+async function acktgSaveEditBorrowed(id) {
+  const e = _acktgEntries.find(x => x.id === id);
+  if (!e) return;
+
+  const date      = document.getElementById(`aie-date-${id}`)?.value  || '';
+  const amountRaw = document.getElementById(`aie-amt-${id}`)?.value   || '';
+  const from      = document.getElementById(`aie-from-${id}`)?.value.trim() || '';
+  const to        = document.getElementById(`aie-to-${id}`)?.value.trim()   || '';
+  const notes     = document.getElementById(`aie-notes-${id}`)?.value.trim() || '';
+
+  if (!date)                                { document.getElementById(`aie-date-${id}`)?.focus(); return; }
+  const amount = parseFloat(String(amountRaw).replace(/[$,]/g, ''));
+  if (isNaN(amount) || amount <= 0)         { document.getElementById(`aie-amt-${id}`)?.focus();  return; }
+
+  await saveAccountingEntry({ ...e, date, amount, from, to, notes });
+  _acktgEntries = await getAccountingEntries();
+  _renderAccountingView();
+}
+
+async function deleteBorrowedEntry(id) {
+  if (!confirm('Delete this borrowed entry? This cannot be undone.')) return;
   await deleteAccountingEntry(id);
   _acktgEntries = _acktgEntries.filter(e => e.id !== id);
   _renderAccountingView();
