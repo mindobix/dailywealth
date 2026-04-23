@@ -297,7 +297,7 @@ function _renderDashboard() {
 
     <!-- ── Row: Asset Allocation | Yearly Gain/Loss ── -->
     <div class="dash-mid-row">
-      ${_buildAssetAllocationWidget(displayInvVal ?? latestVal, netBorrowInv)}
+      ${_buildAssetAllocationWidget(displayInvVal ?? latestVal)}
       <div class="dash-card dash-yearly-card">
         <div class="dash-section-title">Yearly Gain / Loss</div>
         ${_buildYearlyTable()}
@@ -749,26 +749,40 @@ async function _dashRenderBreakdown(latestRecord) {
 }
 
 // ── Asset Allocation widget ───────────────────────────────────────────
-function _buildAssetAllocationWidget(latestVal, borrowAdj) {
+function _buildAssetAllocationWidget(latestVal) {
   if (!_dashCashEntries.length || latestVal === null || latestVal <= 0) return '';
 
-  const totalCash  = _dashCashEntries.reduce((s, e) => s + e.amount, 0) + (borrowAdj || 0);
+  const cashRows = [..._dashCashEntries]
+    .sort((a, b) => b.amount - a.amount)
+    .map(e => {
+      const acct     = _dashAllAccounts.find(a => a.id === e.accountId);
+      const name     = acct?.name || 'Unknown Account';
+      const original = e.amount;
+      const adj      = _dashBorrowedByAccount[e.accountId] || 0;
+      return { name, original, adj, adjusted: original + adj };
+    });
+
+  const anyAdj     = cashRows.some(r => r.adj !== 0);
+  const totalCash  = cashRows.reduce((s, r) => s + r.adjusted, 0);
   const riskAssets = latestVal - totalCash;
   const cashPct    = (totalCash  / latestVal * 100);
   const riskPct    = (riskAssets / latestVal * 100);
+  const span       = anyAdj ? 3 : 1;
 
-  const subRows = [..._dashCashEntries]
-    .sort((a, b) => b.amount - a.amount)
-    .map(e => {
-      const acct = _dashAllAccounts.find(a => a.id === e.accountId);
-      const name = acct?.name || 'Unknown Account';
-      return `
-        <tr class="dash-alloc-sub">
-          <td class="dash-alloc-lbl dash-alloc-lbl-sub">${_dEsc(name)}</td>
-          <td class="dash-alloc-amt">${_dFmtCur(e.amount)}</td>
-          <td class="dash-alloc-pct-col"></td>
-        </tr>`;
-    }).join('');
+  const subRows = cashRows.map(r => {
+    const adjCls  = r.adj < 0 ? 'val-neg' : r.adj > 0 ? 'val-pos' : 'dash-alloc-zero';
+    const adjDisp = r.adj !== 0 ? (r.adj > 0 ? '+' : '') + _dFmtCur(r.adj) : '—';
+    return `
+      <tr class="dash-alloc-sub">
+        <td class="dash-alloc-lbl dash-alloc-lbl-sub">${_dEsc(r.name)}</td>
+        <td class="dash-alloc-amt">${_dFmtCur(r.original)}</td>
+        ${anyAdj ? `
+          <td class="dash-alloc-adj ${adjCls}">${adjDisp}</td>
+          <td class="dash-alloc-adjusted">${r.adj !== 0 ? _dFmtCur(r.adjusted) : ''}</td>
+        ` : ''}
+        <td></td>
+      </tr>`;
+  }).join('');
 
   return `
     <div class="dash-card dash-alloc-card">
@@ -777,17 +791,17 @@ function _buildAssetAllocationWidget(latestVal, borrowAdj) {
         <tbody>
           <tr class="dash-alloc-total">
             <td class="dash-alloc-lbl">Total Inv. Value</td>
-            <td class="dash-alloc-amt dash-alloc-total-val">${_dFmtCur(latestVal)}</td>
+            <td class="dash-alloc-amt dash-alloc-total-val" colspan="${span}">${_dFmtCur(latestVal)}</td>
             <td class="dash-alloc-pct-col"></td>
           </tr>
           <tr class="dash-alloc-cat">
             <td class="dash-alloc-lbl">Risk Assets</td>
-            <td class="dash-alloc-amt dash-alloc-risk">${_dFmtCur(riskAssets)}</td>
+            <td class="dash-alloc-amt dash-alloc-risk" colspan="${span}">${_dFmtCur(riskAssets)}</td>
             <td class="dash-alloc-pct-col dash-alloc-risk">${riskPct.toFixed(2)}%</td>
           </tr>
           <tr class="dash-alloc-cat">
             <td class="dash-alloc-lbl">Cash</td>
-            <td class="dash-alloc-amt dash-alloc-cash">${_dFmtCur(totalCash)}</td>
+            <td class="dash-alloc-amt dash-alloc-cash" colspan="${span}">${_dFmtCur(totalCash)}</td>
             <td class="dash-alloc-pct-col dash-alloc-cash">${cashPct.toFixed(2)}%</td>
           </tr>
           ${subRows}
