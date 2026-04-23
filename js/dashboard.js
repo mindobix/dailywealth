@@ -184,11 +184,14 @@ function _renderDashboard() {
   // Combined total — investments + 529 plans
   const combinedTotal = (latestVal !== null && total529 !== null) ? latestVal + total529 : null;
 
-  // Kids total — sum of all kids-tab accounts from latest investment record
+  // Kids total — sum of all kids-tab accounts from latest investment record that has kids data
   const clientId    = getActiveClientId();
   const kidsAccts   = _dashAllAccounts.filter(a => a.clientId === clientId && a.tab === 'kids' && !a.hidden && a.field);
-  const kidsTotal   = kidsAccts.length
-    ? kidsAccts.reduce((s, a) => s + (typeof latest[a.field] === 'number' ? latest[a.field] : 0), 0)
+  const latestKidsRec = kidsAccts.length
+    ? [..._dashInvRecs].reverse().find(r => kidsAccts.some(a => typeof r[a.field] === 'number'))
+    : null;
+  const kidsTotal   = latestKidsRec
+    ? kidsAccts.reduce((s, a) => s + (typeof latestKidsRec[a.field] === 'number' ? latestKidsRec[a.field] : 0), 0)
     : null;
 
   // True Return calculation using accounting totals
@@ -223,7 +226,7 @@ function _renderDashboard() {
           ? _statCard('True Return', trueReturn, 'gain', 'Since inception – net invested')
           : (total529 !== null ? _statCard('529 Plans Total', total529, 'cur', _dFmtDate(latestP529.date)) : _statCardBlank('529 Plans', 'No data'))}
         ${trueReturn !== null && total529 !== null ? _statCard('529 Plans Total', total529, 'cur', _dFmtDate(latestP529.date)) : ''}
-        ${kidsTotal !== null ? _statCard('Kids Total', kidsTotal, 'cur', _dFmtDate(latest.date)) : ''}
+        ${kidsTotal !== null ? _statCard('Kids Total', kidsTotal, 'cur', _dFmtDate(latestKidsRec.date)) : ''}
         ${combinedTotal !== null ? _statCard('Combined Total', combinedTotal, 'cur', 'Investments + 529 Plans') : ''}
       </div>
     </div>
