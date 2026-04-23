@@ -272,34 +272,37 @@ async function deleteInvestment(id) {
 // ─────────────────────────────────────────────────────────────────
 
 async function _autoComputeGainLoss(record, savedField) {
-  const totalField = typeof getDashTotalField === 'function' ? getDashTotalField() : null;
-  if (!totalField) return;
+  const glField = typeof getGainLossField === 'function' ? getGainLossField('investments') : 'gainLoss';
+  if (savedField === glField) return;
 
-  const glField      = typeof getGainLossField === 'function' ? getGainLossField('investments') : 'gainLoss';
-  if (savedField === glField) return; // don't re-trigger when gain/loss itself was saved
+  const clientId = record.clientId || (typeof getActiveClientId === 'function' ? getActiveClientId() : '');
 
-  const currentTotal = record[totalField];
-  if (currentTotal == null) return;
+  // Sum individual account fields (read from DB so accounts are always fresh)
+  const allAccts   = await getAccounts();
+  const acctFields = allAccts
+    .filter(a => (a.clientId === clientId || !a.clientId) && a.tab === 'investments' && !a.hidden && a.field && a.field !== glField)
+    .map(a => a.field);
+  if (!acctFields.length) return;
 
-  const all      = await dbGetAll('investments');
-  const clientId = record.clientId || '';
-  const sorted   = all
-    .filter(r => r.date && (r.clientId === clientId || !r.clientId) && r[totalField] != null)
+  const sumFields   = r => acctFields.reduce((s, f) => s + (typeof r[f] === 'number' ? r[f] : 0), 0);
+  const currentTotal = sumFields(record);
+  if (currentTotal === 0) return;
+
+  const all    = await dbGetAll('investments');
+  const sorted = all
+    .filter(r => r.id !== record.id && r.date && (r.clientId === clientId || !r.clientId) && acctFields.some(f => r[f] != null))
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  const idx  = sorted.findIndex(r => r.id === record.id);
-  const prev = idx > 0 ? sorted[idx - 1] : null;
-  const next = idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null;
+  const prev = [...sorted].reverse().find(r => r.date < record.date) ?? null;
+  const next = sorted.find(r => r.date > record.date) ?? null;
 
-  // Update current record's gain/loss
   if (prev) {
-    record[glField] = currentTotal - prev[totalField];
+    record[glField] = currentTotal - sumFields(prev);
     await dbPut('investments', record);
   }
 
-  // Update next record's gain/loss (its baseline just changed)
   if (next) {
-    next[glField] = next[totalField] - currentTotal;
+    next[glField] = sumFields(next) - currentTotal;
     await dbPut('investments', next);
   }
 }
