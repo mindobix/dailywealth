@@ -246,6 +246,19 @@ function _renderDashboard() {
     if (sf.some(f => latest[f] != null)) secondaryTotal = val;
   }
 
+  // Borrowed pills — gross amount grouped by fromAccount
+  const _borrowedFromTotals = {};
+  for (const e of _dashBorrowedEntries) {
+    if (e.fromAccount) _borrowedFromTotals[e.fromAccount] = (_borrowedFromTotals[e.fromAccount] || 0) + (e.amount || 0);
+  }
+  const borrowedPills = Object.entries(_borrowedFromTotals)
+    .map(([acctId, total]) => {
+      const acct = _dashAllAccounts.find(a => a.id === acctId);
+      const name = acct?.name || 'Account';
+      return _statCard(`Borrowed · ${name}`, total, 'cur', 'Total borrowed from account');
+    })
+    .join('');
+
   // True Return calculation using accounting totals
   let trueReturn = null;
   if (_dashAcktgTotals && latestVal !== null && _dashInvRecs.length > 0) {
@@ -276,6 +289,7 @@ function _renderDashboard() {
         ${_statCard('YTD Gain / Loss',    ytdGain,  'gain', `Jan 1 – today`)}
         ${_statCard('1-Year Return',       y1Ret,   'pct',  '12-month period')}
         ${trueReturn !== null ? _statCard('True Return', trueReturn, 'gain', 'Since inception – net invested') : ''}
+        ${borrowedPills}
       </div>
     </div>
 
