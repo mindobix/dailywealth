@@ -738,7 +738,7 @@ async function _dashRenderBreakdown(latestRecord) {
   }
 
   const total  = withVals.reduce((s, a) => s + Math.abs(a.value), 0) || 1;
-  const sorted = [...withVals].sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 12);
+  const sorted = withVals.slice(0, 12); // already in accounts-tab order from the filter above
 
   el.innerHTML = sorted.map(a => {
     const pct = (Math.abs(a.value) / total * 100).toFixed(1);
