@@ -281,15 +281,25 @@ async function _autoComputeGainLoss(record, savedField) {
 
   const all      = await dbGetAll('investments');
   const clientId = record.clientId || '';
-  const prev     = all
-    .filter(r => r.date && r.date < record.date && (r.clientId === clientId || !r.clientId) && r[totalField] != null)
-    .sort((a, b) => (a.date < b.date ? -1 : 1))
-    .at(-1);
+  const sorted   = all
+    .filter(r => r.date && (r.clientId === clientId || !r.clientId) && r[totalField] != null)
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  if (!prev) return;
+  const idx  = sorted.findIndex(r => r.id === record.id);
+  const prev = idx > 0 ? sorted[idx - 1] : null;
+  const next = idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null;
 
-  record[glField] = currentTotal - prev[totalField];
-  await dbPut('investments', record);
+  // Update current record's gain/loss
+  if (prev) {
+    record[glField] = currentTotal - prev[totalField];
+    await dbPut('investments', record);
+  }
+
+  // Update next record's gain/loss (its baseline just changed)
+  if (next) {
+    next[glField] = next[totalField] - currentTotal;
+    await dbPut('investments', next);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
