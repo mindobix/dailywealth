@@ -718,11 +718,17 @@ async function _dashRenderBreakdown(latestRecord) {
     .filter(a => a.clientId === clientId && a.tab === 'investments' && !a.hidden)
     .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
 
+  // For accounts that have a cash entry, use the cash entry amount as the base
+  // so the value matches Asset Allocation's adjusted total for the same account.
+  const cashByAcctId = Object.fromEntries(_dashCashEntries.map(e => [e.accountId, e.amount]));
+
   const withVals = shown
     .map(a => {
-      const raw = latestRecord[a.field] ?? null;
-      const adj = _dashBorrowedByAccount[a.id] || 0;
-      return { name: a.name || a.field, field: a.field, value: raw !== null ? raw + adj : (adj !== 0 ? adj : null) };
+      const cashVal  = cashByAcctId[a.id] ?? null;
+      const fieldVal = latestRecord[a.field] ?? null;
+      const base = cashVal !== null ? cashVal : fieldVal;
+      const adj  = _dashBorrowedByAccount[a.id] || 0;
+      return { name: a.name || a.field, field: a.field, value: base !== null ? base + adj : (adj !== 0 ? adj : null) };
     })
     .filter(a => a.value !== null && a.value !== 0);
 
