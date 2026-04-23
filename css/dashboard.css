@@ -570,6 +570,14 @@
   color: var(--ink);
 }
 
+.dash-alloc-from {
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-style: italic;
+  padding: 7px 0 7px 16px;
+  white-space: nowrap;
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .dash-top-row { grid-template-columns: 1fr; }

@@ -765,7 +765,19 @@ function _buildAssetAllocationWidget(latestVal) {
       const name     = acct?.name || 'Unknown Account';
       const original = e.amount;
       const adj      = _dashBorrowedByAccount[e.accountId] || 0;
-      return { name, original, adj, adjusted: original + adj };
+
+      // Collect unique fromAccount names for borrowed entries touching this account
+      const fromNames = [...new Set(
+        _dashBorrowedEntries
+          .filter(b => b.fromAccount === e.accountId || b.toAccount === e.accountId)
+          .map(b => {
+            const fa = _dashAllAccounts.find(a => a.id === b.fromAccount);
+            return fa?.name || b.fromAccount || '';
+          })
+          .filter(Boolean)
+      )];
+
+      return { name, original, adj, adjusted: original + adj, fromNames };
     });
 
   const anyAdj     = cashRows.some(r => r.adj !== 0);
@@ -773,11 +785,12 @@ function _buildAssetAllocationWidget(latestVal) {
   const riskAssets = latestVal - totalCash;
   const cashPct    = (totalCash  / latestVal * 100);
   const riskPct    = (riskAssets / latestVal * 100);
-  const span       = anyAdj ? 3 : 1;
+  const span       = anyAdj ? 4 : 1;
 
   const subRows = cashRows.map(r => {
     const adjCls  = r.adj < 0 ? 'num-neg' : r.adj > 0 ? 'num-pos' : 'dash-alloc-zero';
     const adjDisp = r.adj !== 0 ? (r.adj > 0 ? '+' : '') + _dFmtCur(r.adj) : '—';
+    const fromDisp = r.fromNames.length ? `From: ${r.fromNames.map(n => _dEsc(n)).join(', ')}` : '';
     return `
       <tr class="dash-alloc-sub">
         <td class="dash-alloc-lbl dash-alloc-lbl-sub">${_dEsc(r.name)}</td>
@@ -785,6 +798,7 @@ function _buildAssetAllocationWidget(latestVal) {
         ${anyAdj ? `
           <td class="dash-alloc-adj ${adjCls}">${adjDisp}</td>
           <td class="dash-alloc-adjusted${r.adjusted < 0 ? ' num-neg' : ''}">${r.adj !== 0 ? _dFmtCur(r.adjusted) : ''}</td>
+          <td class="dash-alloc-from">${fromDisp}</td>
         ` : ''}
         <td></td>
       </tr>`;
