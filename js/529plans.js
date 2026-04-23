@@ -205,7 +205,7 @@ function p529SetPageSize(n)  { p529PageSize = n; p529Page = 1; renderPlans529Gri
 
 async function addPlan529Row() {
   const id    = '529_new_' + uid();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
   await dbPut('plans529', { id, date: today });
 
   p529SortFld = 'date';

@@ -174,7 +174,7 @@ function _renderDashboard() {
   const portfolioDelta = (latestVal !== null && prevVal !== null) ? latestVal - prevVal : null;
 
   const y1Date = new Date(now); y1Date.setFullYear(y1Date.getFullYear() - 1);
-  const y1Str  = y1Date.toISOString().slice(0, 10);
+  const y1Str  = _localIso(y1Date);
   const y1Rec  = _dashInvRecs.find(r => r.date >= y1Str && _dashTotalVal(r) !== null);
   const y1Ret  = (y1Rec && latestVal !== null) ? ((latestVal - _dashTotalVal(y1Rec)) / _dashTotalVal(y1Rec) * 100) : null;
 
@@ -317,14 +317,17 @@ function dashSetRange(r) {
 }
 
 // ── Filtered points for chart ─────────────────────────────────────────
+function _localIso(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 function _dashFilteredPoints() {
   const now  = new Date();
   let cutoff = null;
-  if (_dashRange === '1m') { const d = new Date(now); d.setMonth(d.getMonth() - 1);     cutoff = d.toISOString().slice(0, 10); }
-  if (_dashRange === '3m') { const d = new Date(now); d.setMonth(d.getMonth() - 3);     cutoff = d.toISOString().slice(0, 10); }
+  if (_dashRange === '1m') { const d = new Date(now); d.setMonth(d.getMonth() - 1);     cutoff = _localIso(d); }
+  if (_dashRange === '3m') { const d = new Date(now); d.setMonth(d.getMonth() - 3);     cutoff = _localIso(d); }
   if (_dashRange === 'ytd')  cutoff = `${now.getFullYear()}-01-01`;
-  if (_dashRange === '1y') { const d = new Date(now); d.setFullYear(d.getFullYear()-1); cutoff = d.toISOString().slice(0, 10); }
-  if (_dashRange === '3y') { const d = new Date(now); d.setFullYear(d.getFullYear()-3); cutoff = d.toISOString().slice(0, 10); }
+  if (_dashRange === '1y') { const d = new Date(now); d.setFullYear(d.getFullYear()-1); cutoff = _localIso(d); }
+  if (_dashRange === '3y') { const d = new Date(now); d.setFullYear(d.getFullYear()-3); cutoff = _localIso(d); }
 
   const recs = cutoff ? _dashInvRecs.filter(r => r.date >= cutoff) : _dashInvRecs;
   return recs
@@ -743,7 +746,6 @@ function _buildProfitMatrix() {
   if (!_dashInvRecs.length) return '<p class="dash-breakdown-empty">No data.</p>';
 
   const now = new Date();
-  const iso = d => d.toISOString().slice(0, 10);
 
   const d2m = new Date(now); d2m.setMonth(d2m.getMonth() - 2);
   const d1m = new Date(now); d1m.setMonth(d1m.getMonth() - 1);
@@ -751,10 +753,10 @@ function _buildProfitMatrix() {
   const d1w = new Date(now -  7 * 86400000);
 
   const periods = [
-    { label: 'Last 2 Months', cutoff: iso(d2m) },
-    { label: '1 Month',       cutoff: iso(d1m) },
-    { label: '2 Weeks',       cutoff: iso(d2w) },
-    { label: '1 Week',        cutoff: iso(d1w) },
+    { label: 'Last 2 Months', cutoff: _localIso(d2m) },
+    { label: '1 Month',       cutoff: _localIso(d1m) },
+    { label: '2 Weeks',       cutoff: _localIso(d2w) },
+    { label: '1 Week',        cutoff: _localIso(d1w) },
   ];
 
   const cards = periods.map(({ label, cutoff }) => {

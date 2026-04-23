@@ -246,7 +246,7 @@ function invSetPageSize(n) { invPageSize = n; invPage = 1; renderInvestmentsGrid
 async function addInvestmentRow() {
   // Use a temp id so it doesn't clash with imported date-keyed records
   const id = 'inv_new_' + uid();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
   await dbPut('investments', { id, date: today });
 
   invSortFld = 'date';
