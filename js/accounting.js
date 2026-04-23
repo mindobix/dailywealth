@@ -665,8 +665,10 @@ function _acktgAccountName(id) {
 function _acktgAccountOptions() {
   const inv  = typeof getAllShownAccounts === 'function' ? getAllShownAccounts('investments') : [];
   const p529 = typeof getAllShownAccounts === 'function' ? getAllShownAccounts('529') : [];
+  const kids = typeof getAllShownAccounts === 'function' ? getAllShownAccounts('kids') : [];
   const groups = [];
   if (inv.length)  groups.push(`<optgroup label="Investments">${inv.map(a  => `<option value="${_aEscAttr(a.id)}">${_aEsc(a.name)}</option>`).join('')}</optgroup>`);
-  if (p529.length) groups.push(`<optgroup label="529 Plans">${p529.map(a => `<option value="${_aEscAttr(a.id)}">${_aEsc(a.name)}</option>`).join('')}</optgroup>`);
+  if (p529.length) groups.push(`<optgroup label="529 Plans">${p529.map(a  => `<option value="${_aEscAttr(a.id)}">${_aEsc(a.name)}</option>`).join('')}</optgroup>`);
+  if (kids.length) groups.push(`<optgroup label="Kids">${kids.map(a       => `<option value="${_aEscAttr(a.id)}">${_aEsc(a.name)}</option>`).join('')}</optgroup>`);
   return '<option value="">— select account —</option>' + groups.join('');
 }
