@@ -18,6 +18,7 @@ let _dashGainLossField     = 'gainLoss';  // designated gain/loss field for acti
 let _dashSecondaryComputed = null;        // computed field marked as secondary total
 let _dashBorrowedByAccount = {};          // accountId → net borrowed (from − to) for latest display
 let _dashBorrowedEntries  = [];          // raw borrowed entries for active client (for date-aware chart)
+let _dashRiskTrades       = [];          // risk asset trades for active client
 
 function getDashTotalField() { return _dashTotalField; }
 
@@ -104,12 +105,13 @@ function _dashDetectTotalField(records) {
 async function initDashboardView() {
   const clientId = getActiveClientId();
 
-  const [allInv, all529, allAcktgRaw, allAcctsRaw, allClients] = await Promise.all([
+  const [allInv, all529, allAcktgRaw, allAcctsRaw, allClients, allRiskRaw] = await Promise.all([
     dbGetAll('investments'),
     dbGetAll('plans529'),
     dbGetAll('accountingEntries'),
     dbGetAll('accounts'),
     dbGetAll('clients'),
+    dbGetAll('riskAssets'),
   ]);
 
   // Include no-clientId records only when there is a single client (legacy imports)
@@ -153,6 +155,7 @@ async function initDashboardView() {
   }
 
   _dashAllAccounts = allAcctsRaw;
+  _dashRiskTrades  = allRiskRaw.filter(t => t.clientId === clientId);
 
   const glAcct = allAcctsRaw.find(a => a.clientId === clientId && a.tab === 'investments' && a.useForGainLoss && !a.hidden);
   _dashGainLossField = glAcct?.field || 'gainLoss';
@@ -246,16 +249,23 @@ function _renderDashboard() {
     if (sf.some(f => latest[f] != null)) secondaryTotal = val;
   }
 
-  // Borrowed pills — gross amount grouped by fromAccount
-  const _borrowedFromTotals = {};
+  // Borrowed pills — grouped by fromAccount, showing negative amount and toAccount(s)
+  const _borrowedFromMap = {};
   for (const e of _dashBorrowedEntries) {
-    if (e.fromAccount) _borrowedFromTotals[e.fromAccount] = (_borrowedFromTotals[e.fromAccount] || 0) + (e.amount || 0);
+    if (!e.fromAccount) continue;
+    if (!_borrowedFromMap[e.fromAccount]) _borrowedFromMap[e.fromAccount] = { total: 0, toNames: new Set() };
+    _borrowedFromMap[e.fromAccount].total += (e.amount || 0);
+    if (e.toAccount) {
+      const toAcct = _dashAllAccounts.find(a => a.id === e.toAccount);
+      _borrowedFromMap[e.fromAccount].toNames.add(toAcct?.name || e.toAccount);
+    }
   }
-  const borrowedPills = Object.entries(_borrowedFromTotals)
-    .map(([acctId, total]) => {
+  const borrowedPills = Object.entries(_borrowedFromMap)
+    .map(([acctId, { total, toNames }]) => {
       const acct = _dashAllAccounts.find(a => a.id === acctId);
       const name = acct?.name || 'Account';
-      return _statCard(`Borrowed · ${name}`, total, 'cur', 'Total borrowed from account');
+      const toLabel = toNames.size ? `To: ${[...toNames].join(', ')}` : '';
+      return _statCard(`Borrowed · ${name}`, -total, 'gain', toLabel);
     })
     .join('');
 
@@ -292,6 +302,9 @@ function _renderDashboard() {
         ${borrowedPills}
       </div>
     </div>
+
+    <!-- ── Risk Asset Book ── -->
+    ${_buildRiskAssetsWidget()}
 
     <!-- ── Portfolio chart ── -->
     <div class="dash-card dash-chart-card">
@@ -345,6 +358,260 @@ function _renderDashboard() {
     _dashAttachChartHover();
     _dashRenderBreakdown(latest);
   });
+}
+
+// ── Risk Asset Book widget ────────────────────────────────────────────
+
+function _buildRiskAssetsWidget() {
+  const trades = _dashRiskTrades;
+
+  const emptyCard = `
+    <div class="dash-card dash-ra-card">
+      <div class="dash-ra-header">
+        <div>
+          <span class="dash-section-title" style="margin-bottom:0">Risk Asset Book</span>
+          <span class="dash-ra-header-sub">Options &amp; equities trading book</span>
+        </div>
+        <button class="dash-ra-link" onclick="switchView('accounting')">Open in Accounting →</button>
+      </div>
+      <div class="dash-ra-empty">
+        No risk asset positions recorded.
+        <button class="dash-ra-empty-btn" onclick="switchView('accounting')">Add in Accounting →</button>
+      </div>
+    </div>`;
+
+  if (!trades.length) return emptyCard;
+
+  const calcs = trades.map(t => ({ t, c: _dashRaCalc(t) }));
+
+  // ── KPI computation ──────────────────────────────────────────────────
+  const openTrades      = calcs.filter(x => x.c.openQty > 0);
+  const closedTrades    = calcs.filter(x => x.c.sellQty > 0 && x.c.realizedPnl !== null);
+  const winners         = closedTrades.filter(x => x.c.realizedPnl > 0).length;
+  const winRate         = closedTrades.length ? winners / closedTrades.length * 100 : null;
+  const capitalDeployed = calcs.reduce((s, x) => s + (x.c.openCostBasis  ?? 0), 0);
+  const totalCurrentVal = calcs.reduce((s, x) => s + (x.c.currentValue   ?? 0), 0);
+  const totalPnl        = calcs.reduce((s, x) => s + (x.c.realizedPnl    ?? 0), 0);
+  const totalUnrealized = calcs.reduce((s, x) => s + (x.c.unrealizedPnl  ?? 0), 0);
+  const totalGL         = calcs.reduce((s, x) => s + (x.c.totalGainLoss  ?? x.c.realizedPnl ?? 0), 0);
+  const anyLastPrice    = calcs.some(x => x.c.lastPrice !== null);
+
+  const pnlCls = totalPnl       > 0 ? ' num-pos' : totalPnl       < 0 ? ' num-neg' : '';
+  const urCls  = totalUnrealized > 0 ? ' num-pos' : totalUnrealized < 0 ? ' num-neg' : '';
+  const glCls  = totalGL         > 0 ? ' num-pos' : totalGL         < 0 ? ' num-neg' : '';
+  const winCls = winRate === null ? '' : winRate >= 50 ? ' num-pos' : ' num-neg';
+
+  const kpis = [
+    { lbl: 'Open Positions',   val: openTrades.length,  fmt: 'int', sub: `of ${trades.length} total trade${trades.length !== 1 ? 's' : ''}` },
+    { lbl: 'Capital Deployed', val: capitalDeployed,    fmt: 'cur', sub: 'open cost basis' },
+    { lbl: 'Current Value',    val: anyLastPrice ? totalCurrentVal : null, fmt: 'cur',
+      sub: anyLastPrice ? 'open qty × last price' : 'enter last price to enable' },
+    { lbl: 'Unrealized G/L',   val: anyLastPrice ? totalUnrealized : null, fmt: 'pnl',
+      sub: 'current value − cost basis', cls: anyLastPrice ? urCls : '' },
+    { lbl: 'Realized P&amp;L', val: totalPnl,           fmt: 'pnl', sub: 'net of commissions &amp; fees', cls: pnlCls },
+    { lbl: 'Total G/L',        val: anyLastPrice ? totalGL : totalPnl, fmt: 'pnl',
+      sub: anyLastPrice ? 'unrealized + realized' : 'realized only', cls: anyLastPrice ? glCls : pnlCls },
+  ];
+
+  const kpiHtml = kpis.map(k => {
+    let display;
+    const cls = k.cls ?? '';
+    if      (k.fmt === 'int') display = k.val != null ? k.val.toLocaleString() : '—';
+    else if (k.fmt === 'cur') display = k.val != null ? _dFmtCur(k.val) : '—';
+    else if (k.fmt === 'pnl') display = _dashRaFmtPnl(k.val);
+    else if (k.fmt === 'pct') display = k.val != null ? k.val.toFixed(1) + '%' : '—';
+    return `
+      <div class="dash-ra-kpi">
+        <div class="dash-ra-kpi-lbl">${k.lbl}</div>
+        <div class="dash-ra-kpi-val${cls}">${display}</div>
+        <div class="dash-ra-kpi-sub">${k.sub}</div>
+      </div>`;
+  }).join('');
+
+  // ── Positions table ──────────────────────────────────────────────────
+  // Open first, then by absolute P&L descending
+  const sorted = [...calcs].sort((a, b) => {
+    const aOpen = a.c.openQty > 0 ? 1 : 0;
+    const bOpen = b.c.openQty > 0 ? 1 : 0;
+    if (bOpen !== aOpen) return bOpen - aOpen;
+    return Math.abs(b.c.realizedPnl ?? 0) - Math.abs(a.c.realizedPnl ?? 0);
+  });
+
+  const MAX_ROWS  = 10;
+  const shown     = sorted.slice(0, MAX_ROWS);
+  const moreCount = sorted.length - MAX_ROWS;
+
+  const rows = shown.map(({ t, c }) => {
+    const acctName = _dashAllAccounts.find(a => a.id === t.accountId)?.name || '—';
+    const legCount = (t.legs || []).length;
+    const pnlCls   = c.realizedPnl   === null ? '' : c.realizedPnl   >= 0 ? ' num-pos' : ' num-neg';
+    const urCls    = c.unrealizedPnl === null ? '' : c.unrealizedPnl  >= 0 ? ' num-pos' : ' num-neg';
+    const glCls    = c.totalGainLoss === null ? '' : c.totalGainLoss  >= 0 ? ' num-pos' : ' num-neg';
+    const status   = c.openQty > 0 && c.sellQty > 0 ? 'MIXED'
+                   : c.openQty > 0                   ? 'OPEN'
+                   : 'CLOSED';
+    const optSub   = t.type === 'option' ? _dashRaOptSub(t) : '';
+    const glVal    = c.totalGainLoss !== null ? _dashRaFmtPnl(c.totalGainLoss) : _dashRaFmtPnl(c.realizedPnl);
+    const glCls2   = c.totalGainLoss !== null ? glCls : pnlCls;
+    return `
+      <tr>
+        <td class="dash-ra-td-name">
+          <div class="dash-ra-sym">${_dEsc(t.symbol || '—')}</div>
+          ${t.type === 'option' ? `<div class="dash-ra-name-detail">${_dEsc(_dashRaOptDetail(t))}</div>` : ''}
+          ${optSub ? `<div class="dash-ra-name-sub">${_dEsc(optSub)}</div>` : ''}
+        </td>
+        <td><span class="dash-ra-type-badge dash-ra-type-${t.type}">${t.type === 'option' ? 'OPT' : 'STK'}</span></td>
+        <td class="dash-ra-td-acct">${_dEsc(acctName)}</td>
+        <td class="dash-ra-td-r">${c.openQty > 0 ? c.openQty.toLocaleString() : '—'}</td>
+        <td class="dash-ra-td-r">${c.lastPrice !== null ? _dFmtCur(c.lastPrice) : '<span style="color:var(--ink-faint)">—</span>'}</td>
+        <td class="dash-ra-td-r">${c.currentValue  !== null ? _dFmtCur(c.currentValue)  : '—'}</td>
+        <td class="dash-ra-td-r${urCls}">${c.unrealizedPnl !== null ? _dashRaFmtPnl(c.unrealizedPnl) : '—'}</td>
+        <td class="dash-ra-td-r${pnlCls}">${_dashRaFmtPnl(c.realizedPnl)}</td>
+        <td class="dash-ra-td-r${glCls2}">${glVal}</td>
+        <td><span class="dash-ra-status dash-ra-status-${status.toLowerCase()}">${status}</span></td>
+      </tr>`;
+  }).join('');
+
+  const moreRow = moreCount > 0 ? `
+    <tr>
+      <td colspan="10" class="dash-ra-more-row">
+        +${moreCount} more position${moreCount !== 1 ? 's' : ''} —
+        <button onclick="switchView('accounting')">view all in Accounting</button>
+      </td>
+    </tr>` : '';
+
+  // ── Total G/L by symbol bar (right panel) ───────────────────────────
+  const bySymbol = {};
+  for (const { t, c } of calcs) {
+    const gl  = c.totalGainLoss ?? c.realizedPnl;
+    if (gl === null) continue;
+    const sym = t.symbol || '—';
+    bySymbol[sym] = (bySymbol[sym] || 0) + gl;
+  }
+  const symEntries = Object.entries(bySymbol)
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .slice(0, 8);
+  const maxAbsSym  = Math.max(...symEntries.map(([, v]) => Math.abs(v)), 1);
+
+  const symBars = symEntries.length ? symEntries.map(([sym, pnl]) => {
+    const pct  = (Math.abs(pnl) / maxAbsSym * 100).toFixed(1);
+    const pos  = pnl >= 0;
+    return `
+      <div class="dash-ra-bar-row">
+        <div class="dash-ra-bar-sym">${_dEsc(sym)}</div>
+        <div class="dash-ra-bar-track">
+          <div class="dash-ra-bar-fill ${pos ? 'pos' : 'neg'}" style="width:${pct}%"></div>
+        </div>
+        <div class="dash-ra-bar-val ${pos ? 'num-pos' : 'num-neg'}">${_dashRaFmtPnl(pnl)}</div>
+      </div>`;
+  }).join('') : '<div class="dash-ra-bar-empty">No realized P&amp;L yet</div>';
+
+  return `
+    <div class="dash-card dash-ra-card">
+
+      <div class="dash-ra-header">
+        <div>
+          <span class="dash-section-title" style="margin-bottom:0">Risk Asset Book</span>
+          <span class="dash-ra-header-sub">Options &amp; equities trading book · ${trades.length} position${trades.length !== 1 ? 's' : ''}</span>
+        </div>
+        <button class="dash-ra-link" onclick="switchView('accounting')">Open in Accounting →</button>
+      </div>
+
+      <div class="dash-ra-kpis">
+        ${kpiHtml}
+      </div>
+
+      <div class="dash-ra-body">
+        <div class="dash-ra-table-wrap">
+          <table class="dash-ra-table">
+            <thead>
+              <tr>
+                <th class="dash-ra-th-name">Position</th>
+                <th>Type</th>
+                <th>Account</th>
+                <th class="dash-ra-th-r">Open Qty</th>
+                <th class="dash-ra-th-r">Last Price</th>
+                <th class="dash-ra-th-r">Current Value</th>
+                <th class="dash-ra-th-r">Unrealized G/L</th>
+                <th class="dash-ra-th-r">Realized P&amp;L</th>
+                <th class="dash-ra-th-r">Total G/L</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>${moreRow}</tfoot>
+          </table>
+        </div>
+        <div class="dash-ra-pnl-panel">
+          <div class="dash-ra-pnl-title">Total G/L by Symbol</div>
+          <div class="dash-ra-bars">${symBars}</div>
+        </div>
+      </div>
+
+    </div>`;
+}
+
+// ── Risk asset calc (mirrors risk-assets.js, self-contained here) ──────
+
+function _dashRaCalc(t) {
+  const legs   = t.legs || [];
+  const mult   = t.type === 'option' ? 100 : 1;
+  const buys   = legs.filter(l => l.action === 'buy');
+  const sells  = legs.filter(l => l.action === 'sell');
+
+  const buyQty  = buys.reduce((s, l) => s + (l.qty  || 0), 0);
+  const sellQty = sells.reduce((s, l) => s + (l.qty || 0), 0);
+  const openQty = buyQty - sellQty;
+
+  const buyValue  = buys.reduce((s, l)  => s + (l.price || 0) * (l.qty || 0) * mult, 0);
+  const sellValue = sells.reduce((s, l) => s + (l.price || 0) * (l.qty || 0) * mult, 0);
+
+  const avgCost = buyQty  ? buyValue  / (buyQty  * mult) : null;
+  const avgSell = sellQty ? sellValue / (sellQty * mult) : null;
+
+  const totalComm = legs.reduce((s, l) => s + (l.commission || 0), 0);
+  const totalFees = legs.reduce((s, l) => s + (l.fees       || 0), 0);
+
+  const openCostBasis = (avgCost !== null && openQty > 0) ? avgCost * openQty * mult : null;
+  const realizedPnl   = sells.length
+    ? sellValue - (avgCost ?? 0) * sellQty * mult - totalComm - totalFees
+    : null;
+
+  const lastPrice     = (t.lastPrice != null && !isNaN(t.lastPrice)) ? t.lastPrice : null;
+  const currentValue  = (lastPrice !== null && openQty > 0) ? lastPrice * openQty * mult : null;
+  const unrealizedPnl = (currentValue !== null && openCostBasis !== null) ? currentValue - openCostBasis : null;
+  const totalGainLoss = (realizedPnl !== null || unrealizedPnl !== null)
+    ? (realizedPnl ?? 0) + (unrealizedPnl ?? 0) : null;
+
+  return { buyQty, sellQty, openQty, avgCost, avgSell,
+           totalComm, totalFees, openCostBasis, realizedPnl,
+           lastPrice, currentValue, unrealizedPnl, totalGainLoss };
+}
+
+function _dashRaOptDetail(t) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if (!t.expiryDate) return '';
+  const [y, m, d] = t.expiryDate.split('-').map(Number);
+  const exp    = `${months[m - 1]}-${String(d).padStart(2, '0')}-${y}`;
+  const strike = t.strikePrice != null ? ' $' + t.strikePrice : '';
+  return `${exp}${strike} ${(t.optionType || '').toUpperCase()}`.trim();
+}
+
+function _dashRaOptSub(t) {
+  if (!t.expiryDate) return '';
+  const days = Math.ceil((new Date(t.expiryDate) - Date.now()) / 86400000);
+  if (days > 0)   return `${days}d to exp`;
+  if (days === 0) return 'Expires today';
+  return `Exp ${Math.abs(days)}d ago`;
+}
+
+function _dashRaFmtPnl(v) {
+  if (v == null) return '—';
+  const abs = Math.abs(v).toLocaleString('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: 0, maximumFractionDigits: 0,
+  });
+  return v < 0 ? '−' + abs : v > 0 ? '+' + abs : abs;
 }
 
 // ── Stat card builders ────────────────────────────────────────────────

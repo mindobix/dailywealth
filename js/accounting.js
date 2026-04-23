@@ -27,6 +27,7 @@ async function getAcktgTotals(clientId) {
 
 async function initAccountingView() {
   _acktgEntries = await getAccountingEntries();
+  await raInit();
   _renderAccountingView();
 }
 
@@ -60,6 +61,7 @@ function _renderAccountingView() {
       ${_acktgSection('withdrawal', 'Withdrawals', withdrawals, totalWithdrawals)}
       ${_acktgCashSection(cashEntries, totalCash)}
       ${_acktgBorrowedSection(borrowedEntries, totalBorrowed)}
+      ${_renderRiskAssetsSection()}
     </div>
     <div class="acktg-summary">
       <div class="acktg-summary-title">Net Summary</div>
@@ -662,13 +664,14 @@ function _acktgAccountName(id) {
   return a ? a.name : id;
 }
 
-function _acktgAccountOptions() {
+function _acktgAccountOptions(selectedId) {
   const inv  = typeof getAllShownAccounts === 'function' ? getAllShownAccounts('investments') : [];
   const p529 = typeof getAllShownAccounts === 'function' ? getAllShownAccounts('529') : [];
   const kids = typeof getAllShownAccounts === 'function' ? getAllShownAccounts('kids') : [];
+  const sel  = id => (selectedId && id === selectedId) ? ' selected' : '';
   const groups = [];
-  if (inv.length)  groups.push(`<optgroup label="Investments">${inv.map(a  => `<option value="${_aEscAttr(a.id)}">${_aEsc(a.name)}</option>`).join('')}</optgroup>`);
-  if (p529.length) groups.push(`<optgroup label="529 Plans">${p529.map(a  => `<option value="${_aEscAttr(a.id)}">${_aEsc(a.name)}</option>`).join('')}</optgroup>`);
-  if (kids.length) groups.push(`<optgroup label="Kids">${kids.map(a       => `<option value="${_aEscAttr(a.id)}">${_aEsc(a.name)}</option>`).join('')}</optgroup>`);
+  if (inv.length)  groups.push(`<optgroup label="Investments">${inv.map(a  => `<option value="${_aEscAttr(a.id)}"${sel(a.id)}>${_aEsc(a.name)}</option>`).join('')}</optgroup>`);
+  if (p529.length) groups.push(`<optgroup label="529 Plans">${p529.map(a  => `<option value="${_aEscAttr(a.id)}"${sel(a.id)}>${_aEsc(a.name)}</option>`).join('')}</optgroup>`);
+  if (kids.length) groups.push(`<optgroup label="Kids">${kids.map(a       => `<option value="${_aEscAttr(a.id)}"${sel(a.id)}>${_aEsc(a.name)}</option>`).join('')}</optgroup>`);
   return '<option value="">— select account —</option>' + groups.join('');
 }

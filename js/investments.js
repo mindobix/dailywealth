@@ -244,10 +244,22 @@ function invSetPageSize(n) { invPageSize = n; invPage = 1; renderInvestmentsGrid
 // ─────────────────────────────────────────────────────────────────
 
 async function addInvestmentRow() {
-  // Use a temp id so it doesn't clash with imported date-keyed records
-  const id = 'inv_new_' + uid();
-  const today = new Date().toLocaleDateString('en-CA');
-  await dbPut('investments', { id, clientId: getActiveClientId(), date: today });
+  const clientId = getActiveClientId();
+  const today    = new Date().toLocaleDateString('en-CA');
+  const id       = 'inv_new_' + uid();
+
+  // Copy the most recent row as a template so the user only needs to change deltas
+  const allRecs = await dbGetAll('investments');
+  const last    = allRecs
+    .filter(r => r.clientId === clientId && r.date)
+    .sort((a, b) => (a.date > b.date ? -1 : 1))[0];
+
+  const SKIP = new Set(['id', 'date', 'importRunId', 'importTypeId', 'format', 'weeklyDate', 'pct']);
+  const base = last
+    ? Object.fromEntries(Object.entries(last).filter(([k]) => !SKIP.has(k)))
+    : {};
+
+  await dbPut('investments', { ...base, id, clientId, date: today });
 
   invSortFld = 'date';
   invSortDir = 'desc';

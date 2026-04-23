@@ -204,9 +204,21 @@ function p529SetPageSize(n)  { p529PageSize = n; p529Page = 1; renderPlans529Gri
 // ─────────────────────────────────────────────────────────────────
 
 async function addPlan529Row() {
-  const id    = '529_new_' + uid();
-  const today = new Date().toLocaleDateString('en-CA');
-  await dbPut('plans529', { id, clientId: getActiveClientId(), date: today });
+  const clientId = getActiveClientId();
+  const today    = new Date().toLocaleDateString('en-CA');
+  const id       = '529_new_' + uid();
+
+  const allRecs = await dbGetAll('plans529');
+  const last    = allRecs
+    .filter(r => r.clientId === clientId && r.date)
+    .sort((a, b) => (a.date > b.date ? -1 : 1))[0];
+
+  const SKIP = new Set(['id', 'date', 'importRunId', 'importTypeId', 'format', 'weeklyDate', 'pct']);
+  const base = last
+    ? Object.fromEntries(Object.entries(last).filter(([k]) => !SKIP.has(k)))
+    : {};
+
+  await dbPut('plans529', { ...base, id, clientId, date: today });
 
   p529SortFld = 'date';
   p529SortDir = 'desc';
