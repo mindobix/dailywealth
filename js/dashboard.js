@@ -181,9 +181,19 @@ function _renderDashboard() {
   const y1Rec  = _dashInvRecs.find(r => r.date >= y1Str && _dashTotalVal(r) !== null);
   const y1Ret  = (y1Rec && latestVal !== null) ? ((latestVal - _dashTotalVal(y1Rec)) / _dashTotalVal(y1Rec) * 100) : null;
 
+  const clientId529    = getActiveClientId();
   const latestP529     = _dashP529Recs.length ? _dashP529Recs.at(-1) : null;
-  const latestP529Val  = [..._dashP529Recs].reverse().find(r => r.total529 != null);
-  const total529       = latestP529Val?.total529 ?? null;
+  // Compute 529 total from individual account fields (TOTAL 529 is a computed column, not stored)
+  const p529Accts = _dashAllAccounts.filter(a => (a.clientId === clientId529 || !a.clientId) && a.tab === '529' && !a.hidden && a.field && a.field !== 'total529');
+  let total529 = null;
+  if (latestP529) {
+    if (p529Accts.length) {
+      const sum = p529Accts.reduce((s, a) => s + (typeof latestP529[a.field] === 'number' ? latestP529[a.field] : 0), 0);
+      total529 = sum > 0 ? sum : (latestP529.total529 ?? null);
+    } else {
+      total529 = latestP529.total529 ?? null;
+    }
+  }
 
   // Combined total — investments + 529 plans
   const combinedTotal = (latestVal !== null && total529 !== null) ? latestVal + total529 : null;
