@@ -164,8 +164,12 @@ function _renderDashboard() {
     return;
   }
 
-  const latest = _dashInvRecs[_dashInvRecs.length - 1];
-  const prev   = _dashInvRecs.length > 1 ? _dashInvRecs[_dashInvRecs.length - 2] : null;
+  const latestDateRec = _dashInvRecs.at(-1);                                              // last-entered record (for date display)
+  const latest        = [..._dashInvRecs].reverse().find(r => _dashTotalVal(r) !== null)  // last record with a value (for $ display)
+                        ?? latestDateRec;
+  const prev          = _dashInvRecs.length > 1
+                        ? [..._dashInvRecs].slice(0, _dashInvRecs.indexOf(latest)).reverse().find(r => _dashTotalVal(r) !== null) ?? null
+                        : null;
   const now    = new Date();
   const yr     = now.getFullYear().toString();
 
@@ -224,7 +228,7 @@ function _renderDashboard() {
       <div class="dash-hero-card">
         <div class="dash-hero-label">${_dashTotalComputed ? _dEsc(_dashTotalComputed.name) : 'Total Portfolio'}</div>
         <div class="dash-hero-value">${_dFmtCur(latestVal)}</div>
-        <div class="dash-hero-date">${_dFmtDate(latest.date)}</div>
+        <div class="dash-hero-date">${_dFmtDate(latestDateRec.date)}</div>
         ${portfolioDelta !== null ? `
           <div class="dash-hero-delta ${portfolioDelta >= 0 ? 'pos' : 'neg'}">
             <span class="dash-delta-arrow">${portfolioDelta >= 0 ? '▲' : '▼'}</span>
