@@ -297,7 +297,7 @@ function _renderDashboard() {
 
     <!-- ── Row: Asset Allocation | Yearly Gain/Loss ── -->
     <div class="dash-mid-row">
-      ${_buildAssetAllocationWidget(displayInvVal ?? latestVal)}
+      ${_buildAssetAllocationWidget(displayInvVal ?? latestVal, netBorrowInv)}
       <div class="dash-card dash-yearly-card">
         <div class="dash-section-title">Yearly Gain / Loss</div>
         ${_buildYearlyTable()}
@@ -749,10 +749,10 @@ async function _dashRenderBreakdown(latestRecord) {
 }
 
 // ── Asset Allocation widget ───────────────────────────────────────────
-function _buildAssetAllocationWidget(latestVal) {
+function _buildAssetAllocationWidget(latestVal, borrowAdj) {
   if (!_dashCashEntries.length || latestVal === null || latestVal <= 0) return '';
 
-  const totalCash  = _dashCashEntries.reduce((s, e) => s + e.amount, 0);
+  const totalCash  = _dashCashEntries.reduce((s, e) => s + e.amount, 0) + (borrowAdj || 0);
   const riskAssets = latestVal - totalCash;
   const cashPct    = (totalCash  / latestVal * 100);
   const riskPct    = (riskAssets / latestVal * 100);
