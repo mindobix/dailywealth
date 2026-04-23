@@ -16,7 +16,8 @@ let _dashAllAccounts   = [];             // all account records for name lookup
 let _dashLatest529Date = null;           // last-entered date across all 529 records
 let _dashGainLossField     = 'gainLoss';  // designated gain/loss field for active client
 let _dashSecondaryComputed = null;        // computed field marked as secondary total
-let _dashBorrowedByAccount = {};          // accountId → total borrowed FROM that account
+let _dashBorrowedByAccount = {};          // accountId → net borrowed (from − to) for latest display
+let _dashBorrowedEntries  = [];          // raw borrowed entries for active client (for date-aware chart)
 
 function getDashTotalField() { return _dashTotalField; }
 
@@ -143,8 +144,9 @@ async function initDashboardView() {
   };
   _dashCashEntries = acktgFiltered.filter(e => e.type === 'cash');
 
+  _dashBorrowedEntries  = acktgFiltered.filter(e => e.type === 'borrowed');
   _dashBorrowedByAccount = {};
-  for (const e of acktgFiltered.filter(e => e.type === 'borrowed')) {
+  for (const e of _dashBorrowedEntries) {
     const amt = e.amount || 0;
     if (e.fromAccount) _dashBorrowedByAccount[e.fromAccount] = (_dashBorrowedByAccount[e.fromAccount] || 0) + amt;
     if (e.toAccount)   _dashBorrowedByAccount[e.toAccount]   = (_dashBorrowedByAccount[e.toAccount]   || 0) - amt;
@@ -295,7 +297,7 @@ function _renderDashboard() {
 
     <!-- ── Row: Asset Allocation | Yearly Gain/Loss ── -->
     <div class="dash-mid-row">
-      ${_buildAssetAllocationWidget(latestVal)}
+      ${_buildAssetAllocationWidget(displayInvVal ?? latestVal)}
       <div class="dash-card dash-yearly-card">
         <div class="dash-section-title">Yearly Gain / Loss</div>
         ${_buildYearlyTable()}
@@ -406,14 +408,30 @@ function _dashFilteredPoints() {
   if (_dashRange === '1y') { const d = new Date(now); d.setFullYear(d.getFullYear()-1); cutoff = _localIso(d); }
   if (_dashRange === '3y') { const d = new Date(now); d.setFullYear(d.getFullYear()-3); cutoff = _localIso(d); }
 
+  // Pre-build set of investment account IDs for borrowed adjustment
+  const clientId = getActiveClientId();
+  const invAcctIds = new Set(
+    _dashAllAccounts.filter(a => a.clientId === clientId && a.tab === 'investments' && !a.hidden).map(a => a.id)
+  );
+
   const recs = cutoff ? _dashInvRecs.filter(r => r.date >= cutoff) : _dashInvRecs;
   return recs
     .filter(r => _dashTotalVal(r) !== null)
-    .map((r, i) => ({
-      date:   r.date,
-      value:  _dashTotalVal(r),
-      change: i > 0 ? (r[_dashGainLossField] ?? null) : null,
-    }));
+    .map((r, i) => {
+      // Only include borrowed entries dated on or before this record's date
+      const borrowAdj = _dashBorrowedEntries
+        .filter(e => e.date <= r.date)
+        .reduce((s, e) => {
+          if (invAcctIds.has(e.fromAccount)) s += (e.amount || 0);
+          if (invAcctIds.has(e.toAccount))   s -= (e.amount || 0);
+          return s;
+        }, 0);
+      return {
+        date:   r.date,
+        value:  _dashTotalVal(r) + borrowAdj,
+        change: i > 0 ? (r[_dashGainLossField] ?? null) : null,
+      };
+    });
 }
 
 // ── Main portfolio chart ──────────────────────────────────────────────
@@ -701,7 +719,11 @@ async function _dashRenderBreakdown(latestRecord) {
     .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
 
   const withVals = shown
-    .map(a => ({ name: a.name || a.field, field: a.field, value: latestRecord[a.field] ?? null }))
+    .map(a => {
+      const raw = latestRecord[a.field] ?? null;
+      const adj = _dashBorrowedByAccount[a.id] || 0;
+      return { name: a.name || a.field, field: a.field, value: raw !== null ? raw + adj : (adj !== 0 ? adj : null) };
+    })
     .filter(a => a.value !== null && a.value !== 0);
 
   if (!withVals.length) {
