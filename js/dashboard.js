@@ -189,11 +189,6 @@ function _renderDashboard() {
   // Combined total — investments + 529 plans
   const combinedTotal = (latestVal !== null && total529 !== null) ? latestVal + total529 : null;
 
-  // Grand total — investments + 529 plans + kids
-  const grandTotal = (latestVal !== null && total529 !== null && kidsTotal !== null)
-    ? latestVal + total529 + kidsTotal
-    : null;
-
   // Kids total — sum of all kids-tab accounts from latest investment record that has kids data
   const clientId    = getActiveClientId();
   const kidsAccts   = _dashAllAccounts.filter(a => a.clientId === clientId && a.tab === 'kids' && !a.hidden && a.field);
@@ -202,6 +197,11 @@ function _renderDashboard() {
     : null;
   const kidsTotal   = latestKidsRec
     ? kidsAccts.reduce((s, a) => s + (typeof latestKidsRec[a.field] === 'number' ? latestKidsRec[a.field] : 0), 0)
+    : null;
+
+  // Grand total — investments + 529 plans + kids
+  const grandTotal = (latestVal !== null && total529 !== null && kidsTotal !== null)
+    ? latestVal + total529 + kidsTotal
     : null;
 
   // True Return calculation using accounting totals
