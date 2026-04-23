@@ -249,20 +249,14 @@ function _renderDashboard() {
             <span class="dash-delta-arrow">${portfolioDelta >= 0 ? '▲' : '▼'}</span>
             ${_dFmtSigned(portfolioDelta)} from previous week
           </div>` : ''}
+        ${_heroSubTotals(total529, kidsTotal, combinedTotal, grandTotal, secondaryTotal, latestKidsRec)}
       </div>
 
       <div class="dash-stat-cards">
         ${_statCard('Weekly Gain / Loss', weekGain, 'gain', 'This week')}
         ${_statCard('YTD Gain / Loss',    ytdGain,  'gain', `Jan 1 – today`)}
         ${_statCard('1-Year Return',       y1Ret,   'pct',  '12-month period')}
-        ${trueReturn !== null
-          ? _statCard('True Return', trueReturn, 'gain', 'Since inception – net invested')
-          : (total529 !== null ? _statCard('529 Plans Total', total529, 'cur', _dFmtDate(_dashLatest529Date)) : _statCardBlank('529 Plans', 'No data'))}
-        ${trueReturn !== null && total529 !== null ? _statCard('529 Plans Total', total529, 'cur', _dFmtDate(_dashLatest529Date)) : ''}
-        ${kidsTotal !== null ? _statCard('Kids Total', kidsTotal, 'cur', _dFmtDate(latestKidsRec.date)) : ''}
-        ${combinedTotal !== null ? _statCard('Combined Total', combinedTotal, 'cur', 'Investments + 529 Plans') : ''}
-        ${grandTotal   !== null ? _statCard('Grand Total',    grandTotal,    'cur', 'Investments + 529 + Kids') : ''}
-        ${secondaryTotal !== null ? _statCard(_dEsc(_dashSecondaryComputed.name), secondaryTotal, 'cur', _dFmtDate(latestDateRec.date)) : ''}
+        ${trueReturn !== null ? _statCard('True Return', trueReturn, 'gain', 'Since inception – net invested') : ''}
       </div>
     </div>
 
@@ -347,6 +341,30 @@ function _statCardBlank(label, note) {
       <div class="dash-stat-value" style="color:var(--ink-faint)">—</div>
       <div class="dash-stat-sub">${_dEsc(note)}</div>
     </div>`;
+}
+
+function _heroSubTotals(total529, kidsTotal, combinedTotal, grandTotal, secondaryTotal, latestKidsRec) {
+  const items = [];
+  if (total529 !== null)
+    items.push({ label: '529 Plans', val: total529, date: _dFmtDate(_dashLatest529Date), cls: '' });
+  if (kidsTotal !== null && latestKidsRec)
+    items.push({ label: 'Kids Portfolio', val: kidsTotal, date: _dFmtDate(latestKidsRec.date), cls: '' });
+  if (combinedTotal !== null)
+    items.push({ label: 'Investments + 529', val: combinedTotal, date: '', cls: 'combined' });
+  if (grandTotal !== null)
+    items.push({ label: 'Grand Total', val: grandTotal, date: '', cls: 'grand' });
+  if (secondaryTotal !== null && _dashSecondaryComputed)
+    items.push({ label: _dEsc(_dashSecondaryComputed.name), val: secondaryTotal, date: '', cls: 'secondary' });
+
+  if (!items.length) return '';
+
+  return `<div class="dash-hero-subtotals">
+    ${items.map(it => `
+      <div class="dash-hero-sub-row${it.cls ? ' ' + it.cls : ''}">
+        <span class="dash-hero-sub-lbl">${it.label}${it.date ? `<span class="dash-hero-sub-date"> · ${it.date}</span>` : ''}</span>
+        <span class="dash-hero-sub-val">${_dFmtCur(it.val)}</span>
+      </div>`).join('')}
+  </div>`;
 }
 
 // ── Range control ─────────────────────────────────────────────────────
