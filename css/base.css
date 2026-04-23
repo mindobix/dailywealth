@@ -64,6 +64,9 @@ body {
 }
 
 /* ── Utilities ── */
+.num-pos { color: var(--ok)  !important; }
+.num-neg { color: var(--bad) !important; }
+
 .eyebrow {
   font-size: 10.5px;
   font-weight: 600;

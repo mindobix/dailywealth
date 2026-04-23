@@ -381,7 +381,7 @@ function _heroSubTotals(total529, kidsTotal, combinedTotal, grandTotal, secondar
     ${items.map(it => `
       <div class="dash-hero-sub-row${it.cls ? ' ' + it.cls : ''}">
         <span class="dash-hero-sub-lbl">${it.label}${it.date ? `<span class="dash-hero-sub-date"> · ${it.date}</span>` : ''}</span>
-        <span class="dash-hero-sub-val">${_dFmtCur(it.val)}</span>
+        <span class="dash-hero-sub-val${it.val < 0 ? ' num-neg' : ''}">${_dFmtCur(it.val)}</span>
       </div>`).join('')}
   </div>`;
 }
@@ -770,7 +770,7 @@ function _buildAssetAllocationWidget(latestVal) {
   const span       = anyAdj ? 3 : 1;
 
   const subRows = cashRows.map(r => {
-    const adjCls  = r.adj < 0 ? 'val-neg' : r.adj > 0 ? 'val-pos' : 'dash-alloc-zero';
+    const adjCls  = r.adj < 0 ? 'num-neg' : r.adj > 0 ? 'num-pos' : 'dash-alloc-zero';
     const adjDisp = r.adj !== 0 ? (r.adj > 0 ? '+' : '') + _dFmtCur(r.adj) : '—';
     return `
       <tr class="dash-alloc-sub">
@@ -778,7 +778,7 @@ function _buildAssetAllocationWidget(latestVal) {
         <td class="dash-alloc-amt">${_dFmtCur(r.original)}</td>
         ${anyAdj ? `
           <td class="dash-alloc-adj ${adjCls}">${adjDisp}</td>
-          <td class="dash-alloc-adjusted">${r.adj !== 0 ? _dFmtCur(r.adjusted) : ''}</td>
+          <td class="dash-alloc-adjusted${r.adjusted < 0 ? ' num-neg' : ''}">${r.adj !== 0 ? _dFmtCur(r.adjusted) : ''}</td>
         ` : ''}
         <td></td>
       </tr>`;
@@ -796,7 +796,7 @@ function _buildAssetAllocationWidget(latestVal) {
           </tr>
           <tr class="dash-alloc-cat">
             <td class="dash-alloc-lbl">Risk Assets</td>
-            <td class="dash-alloc-amt dash-alloc-risk" colspan="${span}">${_dFmtCur(riskAssets)}</td>
+            <td class="dash-alloc-amt dash-alloc-risk${riskAssets < 0 ? ' num-neg' : ''}" colspan="${span}">${_dFmtCur(riskAssets)}</td>
             <td class="dash-alloc-pct-col dash-alloc-risk">${riskPct.toFixed(2)}%</td>
           </tr>
           <tr class="dash-alloc-cat">
