@@ -144,8 +144,10 @@ async function initDashboardView() {
   _dashCashEntries = acktgFiltered.filter(e => e.type === 'cash');
 
   _dashBorrowedByAccount = {};
-  for (const e of acktgFiltered.filter(e => e.type === 'borrowed' && e.fromAccount)) {
-    _dashBorrowedByAccount[e.fromAccount] = (_dashBorrowedByAccount[e.fromAccount] || 0) + (e.amount || 0);
+  for (const e of acktgFiltered.filter(e => e.type === 'borrowed')) {
+    const amt = e.amount || 0;
+    if (e.fromAccount) _dashBorrowedByAccount[e.fromAccount] = (_dashBorrowedByAccount[e.fromAccount] || 0) + amt;
+    if (e.toAccount)   _dashBorrowedByAccount[e.toAccount]   = (_dashBorrowedByAccount[e.toAccount]   || 0) - amt;
   }
 
   _dashAllAccounts = allAcctsRaw;
@@ -218,15 +220,15 @@ function _renderDashboard() {
     ? kidsAccts.reduce((s, a) => s + (typeof latestKidsRec[a.field] === 'number' ? latestKidsRec[a.field] : 0), 0)
     : null;
 
-  // Borrowed adjustments — add borrowed-FROM amounts to respective tab totals (display only)
-  const invAccts       = _dashAllAccounts.filter(a => a.clientId === clientId && a.tab === 'investments' && !a.hidden);
-  const borrowFromInv  = invAccts.reduce((s, a)    => s + (_dashBorrowedByAccount[a.id] || 0), 0);
-  const borrowFrom529  = p529Accts.reduce((s, a)   => s + (_dashBorrowedByAccount[a.id] || 0), 0);
-  const borrowFromKids = kidsAccts.reduce((s, a)   => s + (_dashBorrowedByAccount[a.id] || 0), 0);
+  // Borrowed net adjustments — +FROM, −TO per account, applied to each tab total (display only)
+  const invAccts      = _dashAllAccounts.filter(a => a.clientId === clientId && a.tab === 'investments' && !a.hidden);
+  const netBorrowInv  = invAccts.reduce((s, a)  => s + (_dashBorrowedByAccount[a.id] || 0), 0);
+  const netBorrow529  = p529Accts.reduce((s, a) => s + (_dashBorrowedByAccount[a.id] || 0), 0);
+  const netBorrowKids = kidsAccts.reduce((s, a) => s + (_dashBorrowedByAccount[a.id] || 0), 0);
 
-  const displayInvVal = latestVal !== null ? latestVal + borrowFromInv : null;
-  const display529    = total529  !== null ? total529  + borrowFrom529 : null;
-  const displayKids   = kidsTotal !== null ? kidsTotal + borrowFromKids : null;
+  const displayInvVal = latestVal !== null ? latestVal + netBorrowInv  : null;
+  const display529    = total529  !== null ? total529  + netBorrow529  : null;
+  const displayKids   = kidsTotal !== null ? kidsTotal + netBorrowKids : null;
 
   // Combined / grand use display-adjusted values
   const combinedTotal = (displayInvVal !== null && display529 !== null) ? displayInvVal + display529 : null;
