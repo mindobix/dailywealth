@@ -294,12 +294,18 @@ function _renderDashboard() {
         ${_heroSubTotals(display529, displayKids, combinedTotal, grandTotal, secondaryTotal, latestKidsRec)}
       </div>
 
-      <div class="dash-stat-cards">
-        ${_statCard('Weekly Gain / Loss', weekGain, 'gain', 'This week')}
-        ${_statCard('YTD Gain / Loss',    ytdGain,  'gain', `Jan 1 – today`)}
-        ${_statCard('1-Year Return',       y1Ret,   'pct',  '12-month period')}
-        ${trueReturn !== null ? _statCard('True Return', trueReturn, 'gain', 'Since inception – net invested') : ''}
-        ${borrowedPills}
+      <div class="dash-top-right">
+        <div class="dash-stat-cards">
+          ${_statCard('Weekly Gain / Loss', weekGain, 'gain', 'This week')}
+          ${_statCard('YTD Gain / Loss',    ytdGain,  'gain', `Jan 1 – today`)}
+          ${_statCard('1-Year Return',       y1Ret,   'pct',  '12-month period')}
+          ${trueReturn !== null ? _statCard('True Return', trueReturn, 'gain', 'Since inception – net invested') : ''}
+          ${borrowedPills}
+        </div>
+        <div class="dash-card">
+          <div class="dash-section-title">Profit Matrix</div>
+          ${_buildProfitMatrix()}
+        </div>
       </div>
     </div>
 
@@ -341,12 +347,6 @@ function _renderDashboard() {
         <div class="dash-section-title">Monthly Performance</div>
         <canvas id="dash-monthly-canvas" height="200" style="display:block;width:100%"></canvas>
       </div>
-    </div>
-
-    <!-- ── Profit Matrix ── -->
-    <div class="dash-card">
-      <div class="dash-section-title">Profit Matrix</div>
-      ${_buildProfitMatrix()}
     </div>
 
   `;

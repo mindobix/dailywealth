@@ -157,6 +157,13 @@
   font-style: italic;
 }
 
+/* Right column: stat cards + profit matrix */
+.dash-top-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 /* Stat cards */
 .dash-stat-cards {
   background: var(--canvas-raised);
