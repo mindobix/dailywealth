@@ -1,6 +1,6 @@
 /* ── db.js ── IndexedDB core layer ─────────────────────────────
  *
- * Database: dailywealth-db  (version 7)
+ * Database: dailywealth-db  (version 9)
  * Object stores (all keyPath: 'id'):
  *   investments       — portfolio snapshots per client
  *   plans529          — 529 plan snapshots per client
@@ -13,6 +13,7 @@
  *   csvRecords        — raw CSV import records
  *   kids              — kids portfolio snapshots per client
  *   accountingEntries — deposits, RMDs, withdrawals, cash per client
+ *   riskAssets        — risk asset trades (stocks & options) with legs per client
  * ─────────────────────────────────────────────────────────────── */
 
 const DW_DB_NAME    = 'dailywealth-db';

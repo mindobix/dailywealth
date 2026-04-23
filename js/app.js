@@ -86,7 +86,8 @@ document.addEventListener('click', e => {
 
 async function backupData() {
   const [investments, plans529, kids, importHistory, clients, importTypes,
-         accounts, computedFields, csvImportTypes, csvRecords, accountingEntries] = await Promise.all([
+         accounts, computedFields, csvImportTypes, csvRecords, accountingEntries,
+         riskAssets] = await Promise.all([
     dbGetAll('investments'),
     dbGetAll('plans529'),
     dbGetAll('kids'),
@@ -98,6 +99,7 @@ async function backupData() {
     dbGetAll('csvImportTypes'),
     dbGetAll('csvRecords'),
     dbGetAll('accountingEntries'),
+    dbGetAll('riskAssets'),
   ]);
 
   const backup = {
@@ -114,6 +116,7 @@ async function backupData() {
     csvImportTypes,
     csvRecords,
     accountingEntries,
+    riskAssets,
   };
 
   const json = JSON.stringify(backup, null, 2);
@@ -145,7 +148,8 @@ async function restoreData(event) {
     }
 
     const stores = ['investments', 'plans529', 'kids', 'importHistory', 'clients',
-                    'importTypes', 'accounts', 'computedFields', 'csvImportTypes', 'csvRecords', 'accountingEntries'];
+                    'importTypes', 'accounts', 'computedFields', 'csvImportTypes', 'csvRecords', 'accountingEntries',
+                    'riskAssets'];
 
     const hasAny = stores.some(s => Array.isArray(backup[s]) && backup[s].length > 0);
     if (!hasAny) {
