@@ -14,6 +14,9 @@ let _dashAcktgTotals   = null;           // { totalDeposits, totalRmds, totalWit
 let _dashCashEntries   = [];             // type:'cash' accounting entries for active client
 let _dashAllAccounts   = [];             // all account records for name lookup
 let _dashLatest529Date = null;           // last-entered date across all 529 records
+let _dashGainLossField = 'gainLoss';     // designated gain/loss field for active client
+
+function getDashTotalField() { return _dashTotalField; }
 
 // chart hover state
 let _dashChartPoints  = [];
@@ -132,6 +135,9 @@ async function initDashboardView() {
   _dashCashEntries = acktgFiltered.filter(e => e.type === 'cash');
   _dashAllAccounts = allAcctsRaw;
 
+  const glAcct = allAcctsRaw.find(a => a.clientId === clientId && a.tab === 'investments' && a.useForGainLoss && !a.hidden);
+  _dashGainLossField = glAcct?.field || 'gainLoss';
+
   _renderDashboard();
 }
 
@@ -161,9 +167,9 @@ function _renderDashboard() {
   const yr     = now.getFullYear().toString();
 
   const ytdRecs   = _dashInvRecs.filter(r => r.date >= `${yr}-01-01`);
-  const ytdGain   = ytdRecs.reduce((s, r) => s + (r.gainLoss || 0), 0);
-  const weekGainRec = [..._dashInvRecs].reverse().find(r => typeof r.gainLoss === 'number');
-  const weekGain    = weekGainRec?.gainLoss ?? null;
+  const ytdGain   = ytdRecs.reduce((s, r) => s + (r[_dashGainLossField] || 0), 0);
+  const weekGainRec = [..._dashInvRecs].reverse().find(r => typeof r[_dashGainLossField] === 'number');
+  const weekGain    = weekGainRec?.[_dashGainLossField] ?? null;
   const latestVal = _dashTotalVal(latest);
   const prevVal   = prev ? _dashTotalVal(prev) : null;
   const portfolioDelta = (latestVal !== null && prevVal !== null) ? latestVal - prevVal : null;
@@ -354,7 +360,7 @@ function _dashFilteredPoints() {
     .map((r, i) => ({
       date:   r.date,
       value:  _dashTotalVal(r),
-      change: i > 0 ? (r.gainLoss ?? null) : null,
+      change: i > 0 ? (r[_dashGainLossField] ?? null) : null,
     }));
 }
 
@@ -544,7 +550,7 @@ function _dashDrawMonthlyChart() {
   _dashInvRecs.forEach(r => {
     const mo = r.date?.slice(0, 7);
     if (!mo) return;
-    months[mo] = (months[mo] || 0) + (r.gainLoss || 0);
+    months[mo] = (months[mo] || 0) + (r[_dashGainLossField] || 0);
   });
 
   const now = new Date();
@@ -724,7 +730,7 @@ function _buildYearlyTable() {
   for (const r of _dashInvRecs) {
     if (!r.date) continue;
     const yr = r.date.slice(0, 4);
-    byYear[yr] = (byYear[yr] || 0) + (typeof r.gainLoss === 'number' ? r.gainLoss : 0);
+    byYear[yr] = (byYear[yr] || 0) + (typeof r[_dashGainLossField] === 'number' ? r[_dashGainLossField] : 0);
   }
 
   const years = Object.keys(byYear).sort((a, b) => b - a);
@@ -780,7 +786,7 @@ function _buildProfitMatrix() {
 
   const cards = periods.map(({ label, cutoff }) => {
     const recs  = _dashInvRecs.filter(r => r.date >= cutoff);
-    const total = recs.reduce((s, r) => s + (r.gainLoss || 0), 0);
+    const total = recs.reduce((s, r) => s + (r[_dashGainLossField] || 0), 0);
     const cls   = total > 0 ? 'pos' : total < 0 ? 'neg' : '';
     const disp  = recs.length ? (total >= 0 ? '+' : '') + _dFmtCur(total) : '—';
     const weeks = recs.length;

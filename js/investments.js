@@ -268,6 +268,31 @@ async function deleteInvestment(id) {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// AUTO GAIN/LOSS
+// ─────────────────────────────────────────────────────────────────
+
+async function _autoComputeGainLoss(record, savedField) {
+  const totalField = typeof getDashTotalField === 'function' ? getDashTotalField() : null;
+  if (!totalField || savedField !== totalField) return;
+
+  const glField      = typeof getGainLossField === 'function' ? getGainLossField('investments') : 'gainLoss';
+  const currentTotal = record[totalField];
+  if (currentTotal == null) return;
+
+  const all      = await dbGetAll('investments');
+  const clientId = record.clientId || '';
+  const prev     = all
+    .filter(r => r.date && r.date < record.date && (r.clientId === clientId || !r.clientId) && r[totalField] != null)
+    .sort((a, b) => (a.date < b.date ? -1 : 1))
+    .at(-1);
+
+  if (!prev) return;
+
+  record[glField] = currentTotal - prev[totalField];
+  await dbPut('investments', record);
+}
+
+// ─────────────────────────────────────────────────────────────────
 // HELPER
 // ─────────────────────────────────────────────────────────────────
 

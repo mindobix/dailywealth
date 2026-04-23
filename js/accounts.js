@@ -119,6 +119,12 @@ function getAccountByField(field, tab) {
   return _accounts.find(a => a.field === field && a.tab === tab) || null;
 }
 
+function getGainLossField(tab) {
+  const clientId = typeof getActiveClientId === 'function' ? getActiveClientId() : '';
+  const a = _accounts.find(x => x.clientId === clientId && x.tab === tab && x.useForGainLoss && !x.hidden);
+  return a?.field || 'gainLoss';
+}
+
 function getShownAccountsForTab(tab) {
   return _accounts
     .filter(a => a.tab === tab && !a.hidden && a.field)
@@ -359,6 +365,7 @@ function openAccountModal(id) {
   document.getElementById('acct-modal-type').value        = a?.type          || '';
   document.getElementById('acct-modal-brokerage').value   = a?.brokerageName || '';
   document.getElementById('acct-modal-number').value      = a?.accountNumber || '';
+  document.getElementById('acct-modal-gainloss').checked  = a?.useForGainLoss || false;
 
   const fieldRow   = document.getElementById('acct-modal-field-row');
   const fieldInput = document.getElementById('acct-modal-field-input');
@@ -415,7 +422,14 @@ async function saveAccountModal() {
     order = (tabItems.length ? Math.max(...tabItems) : -1) + 1;
   }
 
-  const field = existing?.field || document.getElementById('acct-modal-field-input').value.trim() || _toFieldKey(name);
+  const field        = existing?.field || document.getElementById('acct-modal-field-input').value.trim() || _toFieldKey(name);
+  const useForGainLoss = document.getElementById('acct-modal-gainloss').checked;
+
+  // Only one account per tab+client can be the gain/loss field
+  if (useForGainLoss) {
+    const rivals = _accounts.filter(a => a.id !== id && a.tab === tab && a.useForGainLoss);
+    for (const r of rivals) await saveAccount({ ...r, useForGainLoss: false });
+  }
 
   await saveAccount({
     id, clientId: existing?.clientId || clientId,
@@ -423,7 +437,8 @@ async function saveAccountModal() {
     type:          document.getElementById('acct-modal-type').value,
     brokerageName: document.getElementById('acct-modal-brokerage').value.trim(),
     accountNumber: document.getElementById('acct-modal-number').value.trim(),
-    hidden:   existing?.hidden   || false,
+    hidden:        existing?.hidden || false,
+    useForGainLoss,
     order,
     createdAt: existing?.createdAt || Date.now(),
   });

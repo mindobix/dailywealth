@@ -173,6 +173,11 @@ async function _saveCellChange(storeName, recId, field, newVal, type) {
 
   await dbPut(storeName, record);
 
+  // Auto-compute gain/loss when total field changes (investments only)
+  if (storeName === 'investments' && typeof _autoComputeGainLoss === 'function') {
+    await _autoComputeGainLoss(record, field).catch(() => {});
+  }
+
   // Re-render the relevant tab (both stay in sync)
   if (storeName === 'investments') renderInvestmentsGrid();
   else                              renderPlans529Grid();
