@@ -90,12 +90,18 @@ function _renderAccountingView() {
 
 function _acktgSection(type, label, entries, total) {
   const singulars = { deposit: 'deposit', rmd: 'RMD', withdrawal: 'withdrawal' };
+  const isEmpty = entries.length === 0;
   return `
-    <div class="acktg-section">
+    <div class="acktg-section${isEmpty ? ' acktg-section--collapsed' : ''}">
       <div class="acktg-section-hd">
         <span class="acktg-section-title">${label}</span>
         <button class="acktg-add-btn" onclick="acktgStartAdd('${type}')">+ Add ${singulars[type]}</button>
       </div>
+      ${isEmpty ? `
+        <div class="acktg-collapsed-bar">
+          <span class="acktg-collapsed-empty">No entries</span>
+          <span class="acktg-collapsed-total">Total: ${gFmtCurrency(total)}</span>
+        </div>` : `
       <div class="acktg-table-wrap">
         <table class="acktg-table">
           <thead>
@@ -109,10 +115,7 @@ function _acktgSection(type, label, entries, total) {
             </tr>
           </thead>
           <tbody id="acktg-tbody-${type}">
-            ${entries.length
-              ? entries.map(e => _acktgRow(e)).join('')
-              : `<tr class="acktg-empty" id="acktg-empty-${type}"><td colspan="6">No ${label.toLowerCase()} yet</td></tr>`
-            }
+            ${entries.map(e => _acktgRow(e)).join('')}
           </tbody>
           <tfoot>
             <tr class="acktg-total-row">
@@ -122,7 +125,7 @@ function _acktgSection(type, label, entries, total) {
             </tr>
           </tfoot>
         </table>
-      </div>
+      </div>`}
     </div>`;
 }
 
@@ -145,16 +148,18 @@ function _acktgRow(e) {
 // ─────────────────────────────────────────────────────────────────
 
 function _acktgCashSection(entries, total) {
-  const rows = entries.length
-    ? entries.map(e => _acktgCashRow(e)).join('')
-    : `<tr class="acktg-empty" id="acktg-empty-cash"><td colspan="4">No cash entries yet</td></tr>`;
-
+  const isEmpty = entries.length === 0;
   return `
-    <div class="acktg-cash-section acktg-section">
+    <div class="acktg-cash-section acktg-section${isEmpty ? ' acktg-section--collapsed' : ''}">
       <div class="acktg-section-hd">
         <span class="acktg-section-title">Cash</span>
         <button class="acktg-add-btn" onclick="acktgStartAddCash()">+ Add cash</button>
       </div>
+      ${isEmpty ? `
+        <div class="acktg-collapsed-bar">
+          <span class="acktg-collapsed-empty">No entries</span>
+          <span class="acktg-collapsed-total">Total: ${gFmtCurrency(total)}</span>
+        </div>` : `
       <div class="acktg-table-wrap">
         <table class="acktg-table acktg-cash-table">
           <thead>
@@ -166,7 +171,7 @@ function _acktgCashSection(entries, total) {
             </tr>
           </thead>
           <tbody id="acktg-tbody-cash">
-            ${rows}
+            ${entries.map(e => _acktgCashRow(e)).join('')}
           </tbody>
           <tfoot>
             <tr class="acktg-total-row">
@@ -176,7 +181,7 @@ function _acktgCashSection(entries, total) {
             </tr>
           </tfoot>
         </table>
-      </div>
+      </div>`}
     </div>`;
 }
 
@@ -202,16 +207,35 @@ function _fmtDateTime(iso) {
 }
 
 function acktgStartAddCash() {
-  const tbody = document.getElementById('acktg-tbody-cash');
-  if (!tbody) return;
+  let tbody = document.getElementById('acktg-tbody-cash');
+
+  if (!tbody) {
+    const btn = document.querySelector('[onclick="acktgStartAddCash()"]');
+    const section = btn?.closest('.acktg-section');
+    if (!section) return;
+    section.classList.remove('acktg-section--collapsed');
+    section.querySelector('.acktg-collapsed-bar')?.remove();
+    const tableWrap = document.createElement('div');
+    tableWrap.className = 'acktg-table-wrap';
+    tableWrap.innerHTML = `<table class="acktg-table acktg-cash-table">
+      <thead><tr>
+        <th>Account</th><th class="acktg-th-amt">Cash Amount</th>
+        <th>Last Updated</th><th></th>
+      </tr></thead>
+      <tbody id="acktg-tbody-cash"></tbody>
+      <tfoot><tr class="acktg-total-row">
+        <td>Total</td><td class="acktg-td-amt">${gFmtCurrency(0)}</td>
+        <td></td><td></td>
+      </tr></tfoot>
+    </table>`;
+    section.appendChild(tableWrap);
+    tbody = document.getElementById('acktg-tbody-cash');
+  }
 
   if (tbody.querySelector('.acktg-new-row')) {
     tbody.querySelector('.acktg-new-row input, .acktg-new-row select')?.focus();
     return;
   }
-
-  const emptyRow = document.getElementById('acktg-empty-cash');
-  if (emptyRow) emptyRow.remove();
 
   const opts = _acktgAccountOptions();
 
@@ -348,8 +372,33 @@ async function acktgSaveEdit(id) {
 // ─────────────────────────────────────────────────────────────────
 
 function acktgStartAdd(type) {
-  const tbody = document.getElementById(`acktg-tbody-${type}`);
-  if (!tbody) return;
+  let tbody = document.getElementById(`acktg-tbody-${type}`);
+
+  // Section is collapsed (no data) — expand it inline before inserting the new row
+  if (!tbody) {
+    const btn = document.querySelector(`[onclick="acktgStartAdd('${type}')"]`);
+    const section = btn?.closest('.acktg-section');
+    if (!section) return;
+    section.classList.remove('acktg-section--collapsed');
+    const collapsedBar = section.querySelector('.acktg-collapsed-bar');
+    if (collapsedBar) collapsedBar.remove();
+    const opts = _acktgAccountOptions();
+    const tableWrap = document.createElement('div');
+    tableWrap.className = 'acktg-table-wrap';
+    tableWrap.innerHTML = `<table class="acktg-table">
+      <thead><tr>
+        <th>Date</th><th class="acktg-th-amt">Amount</th>
+        <th>From</th><th>To</th><th>Notes</th><th></th>
+      </tr></thead>
+      <tbody id="acktg-tbody-${type}"></tbody>
+      <tfoot><tr class="acktg-total-row">
+        <td>Total</td><td class="acktg-td-amt">${gFmtCurrency(0)}</td>
+        <td></td><td></td><td></td><td></td>
+      </tr></tfoot>
+    </table>`;
+    section.appendChild(tableWrap);
+    tbody = document.getElementById(`acktg-tbody-${type}`);
+  }
 
   // Only one new row at a time per section
   if (tbody.querySelector('.acktg-new-row')) {
@@ -357,11 +406,7 @@ function acktgStartAdd(type) {
     return;
   }
 
-  // Remove empty-state placeholder row if present
-  const emptyRow = document.getElementById(`acktg-empty-${type}`);
-  if (emptyRow) emptyRow.remove();
-
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('en-CA');
   const opts  = _acktgAccountOptions();
   const tempId = `new-${type}`;
 
@@ -416,16 +461,18 @@ async function deleteAcktgEntry(id) {
 // ─────────────────────────────────────────────────────────────────
 
 function _acktgBorrowedSection(entries, total) {
-  const rows = entries.length
-    ? entries.map(e => _acktgBorrowedRow(e)).join('')
-    : `<tr class="acktg-empty" id="acktg-empty-borrowed"><td colspan="6">No borrowed entries yet</td></tr>`;
-
+  const isEmpty = entries.length === 0;
   return `
-    <div class="acktg-section">
+    <div class="acktg-section${isEmpty ? ' acktg-section--collapsed' : ''}">
       <div class="acktg-section-hd">
         <span class="acktg-section-title">Borrowed</span>
         <button class="acktg-add-btn" onclick="acktgStartAddBorrowed()">+ Add borrowed</button>
       </div>
+      ${isEmpty ? `
+        <div class="acktg-collapsed-bar">
+          <span class="acktg-collapsed-empty">No entries</span>
+          <span class="acktg-collapsed-total">Total: ${gFmtCurrency(total)}</span>
+        </div>` : `
       <div class="acktg-table-wrap">
         <table class="acktg-table">
           <thead>
@@ -439,7 +486,7 @@ function _acktgBorrowedSection(entries, total) {
             </tr>
           </thead>
           <tbody id="acktg-tbody-borrowed">
-            ${rows}
+            ${entries.map(e => _acktgBorrowedRow(e)).join('')}
           </tbody>
           <tfoot>
             <tr class="acktg-total-row">
@@ -449,7 +496,7 @@ function _acktgBorrowedSection(entries, total) {
             </tr>
           </tfoot>
         </table>
-      </div>
+      </div>`}
     </div>`;
 }
 
@@ -468,16 +515,35 @@ function _acktgBorrowedRow(e) {
 }
 
 function acktgStartAddBorrowed() {
-  const tbody = document.getElementById('acktg-tbody-borrowed');
-  if (!tbody) return;
+  let tbody = document.getElementById('acktg-tbody-borrowed');
+
+  if (!tbody) {
+    const btn = document.querySelector('[onclick="acktgStartAddBorrowed()"]');
+    const section = btn?.closest('.acktg-section');
+    if (!section) return;
+    section.classList.remove('acktg-section--collapsed');
+    section.querySelector('.acktg-collapsed-bar')?.remove();
+    const tableWrap = document.createElement('div');
+    tableWrap.className = 'acktg-table-wrap';
+    tableWrap.innerHTML = `<table class="acktg-table">
+      <thead><tr>
+        <th>Date</th><th class="acktg-th-amt">Amount</th>
+        <th>From</th><th>To</th><th>Notes</th><th></th>
+      </tr></thead>
+      <tbody id="acktg-tbody-borrowed"></tbody>
+      <tfoot><tr class="acktg-total-row">
+        <td>Total</td><td class="acktg-td-amt">${gFmtCurrency(0)}</td>
+        <td></td><td></td><td></td><td></td>
+      </tr></tfoot>
+    </table>`;
+    section.appendChild(tableWrap);
+    tbody = document.getElementById('acktg-tbody-borrowed');
+  }
 
   if (tbody.querySelector('.acktg-new-row')) {
     tbody.querySelector('.acktg-new-row input')?.focus();
     return;
   }
-
-  const emptyRow = document.getElementById('acktg-empty-borrowed');
-  if (emptyRow) emptyRow.remove();
 
   const today  = new Date().toLocaleDateString('en-CA');
   const tempId = 'new-borrowed';

@@ -247,6 +247,28 @@ tr:has(.acktg-inline-sel) td {
   text-align: right;
 }
 
+/* ── Collapsed (empty) section ───────────────────────────────────── */
+.acktg-collapsed-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px;
+  background: var(--canvas);
+}
+
+.acktg-collapsed-empty {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.acktg-collapsed-total {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+}
+
 /* ── Cash section ────────────────────────────────────────────────── */
 .acktg-cash-table {
   min-width: 420px;
