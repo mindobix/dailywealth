@@ -186,7 +186,7 @@ function _renderDashboard() {
   const clientId529    = getActiveClientId();
   const latestP529     = _dashP529Recs.length ? _dashP529Recs.at(-1) : null;
   // Compute 529 total from individual account fields (TOTAL 529 is a computed column, not stored)
-  const p529Accts = _dashAllAccounts.filter(a => (a.clientId === clientId529 || !a.clientId) && a.tab === '529' && !a.hidden && a.field && a.field !== 'total529');
+  const p529Accts = _dashAllAccounts.filter(a => a.clientId === clientId529 && a.tab === '529' && !a.hidden && a.field && a.field !== 'total529');
   let total529 = null;
   if (latestP529) {
     if (p529Accts.length) {
