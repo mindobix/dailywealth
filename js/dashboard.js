@@ -105,17 +105,10 @@ async function initDashboardView() {
     dbGetAll('accounts'),
   ]);
 
-  // Load ALL records for this client — no field-existence filter
+  // Match grid filter: clientId matches OR no clientId (manually added rows before fix)
   _dashInvRecs = allInv
-    .filter(r => r.clientId === clientId && r.date)
+    .filter(r => (r.clientId === clientId || !r.clientId) && r.date)
     .sort((a, b) => (a.date < b.date ? -1 : 1));
-
-  // Fall back to legacy records with no clientId only if nothing else exists
-  if (!_dashInvRecs.length) {
-    _dashInvRecs = allInv
-      .filter(r => !r.clientId && r.date)
-      .sort((a, b) => (a.date < b.date ? -1 : 1));
-  }
 
   // Check if any computed field is marked as the dashboard total
   const allComputeds   = await getComputedFields();
@@ -125,14 +118,8 @@ async function initDashboardView() {
   _dashTotalField      = _dashTotalComputed ? null : _dashDetectTotalField(_dashInvRecs);
 
   _dashP529Recs = all529
-    .filter(r => r.clientId === clientId && r.date)
+    .filter(r => (r.clientId === clientId || !r.clientId) && r.date)
     .sort((a, b) => (a.date < b.date ? -1 : 1));
-
-  if (!_dashP529Recs.length) {
-    _dashP529Recs = all529
-      .filter(r => !r.clientId && r.date)
-      .sort((a, b) => (a.date < b.date ? -1 : 1));
-  }
 
   _dashLatest529Date = _dashP529Recs.length ? _dashP529Recs.at(-1).date : null;
 
@@ -202,6 +189,11 @@ function _renderDashboard() {
   // Combined total — investments + 529 plans
   const combinedTotal = (latestVal !== null && total529 !== null) ? latestVal + total529 : null;
 
+  // Grand total — investments + 529 plans + kids
+  const grandTotal = (latestVal !== null && total529 !== null && kidsTotal !== null)
+    ? latestVal + total529 + kidsTotal
+    : null;
+
   // Kids total — sum of all kids-tab accounts from latest investment record that has kids data
   const clientId    = getActiveClientId();
   const kidsAccts   = _dashAllAccounts.filter(a => a.clientId === clientId && a.tab === 'kids' && !a.hidden && a.field);
@@ -246,6 +238,7 @@ function _renderDashboard() {
         ${trueReturn !== null && total529 !== null ? _statCard('529 Plans Total', total529, 'cur', _dFmtDate(_dashLatest529Date)) : ''}
         ${kidsTotal !== null ? _statCard('Kids Total', kidsTotal, 'cur', _dFmtDate(latestKidsRec.date)) : ''}
         ${combinedTotal !== null ? _statCard('Combined Total', combinedTotal, 'cur', 'Investments + 529 Plans') : ''}
+        ${grandTotal   !== null ? _statCard('Grand Total',    grandTotal,    'cur', 'Investments + 529 + Kids') : ''}
       </div>
     </div>
 

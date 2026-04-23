@@ -247,7 +247,7 @@ async function addInvestmentRow() {
   // Use a temp id so it doesn't clash with imported date-keyed records
   const id = 'inv_new_' + uid();
   const today = new Date().toLocaleDateString('en-CA');
-  await dbPut('investments', { id, date: today });
+  await dbPut('investments', { id, clientId: getActiveClientId(), date: today });
 
   invSortFld = 'date';
   invSortDir = 'desc';

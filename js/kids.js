@@ -202,7 +202,7 @@ function kidSetPageSize(n) { kidPageSize = n; kidPage = 1; renderKidsGrid(); }
 async function addKidsRow() {
   const id    = 'kid_new_' + uid();
   const today = new Date().toLocaleDateString('en-CA');
-  await dbPut('investments', { id, date: today });
+  await dbPut('investments', { id, clientId: getActiveClientId(), date: today });
 
   kidSortFld = 'date';
   kidSortDir = 'desc';
