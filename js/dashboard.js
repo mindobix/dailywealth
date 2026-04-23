@@ -785,7 +785,7 @@ function _buildAssetAllocationWidget(latestVal) {
   const riskAssets = latestVal - totalCash;
   const cashPct    = (totalCash  / latestVal * 100);
   const riskPct    = (riskAssets / latestVal * 100);
-  const span       = anyAdj ? 4 : 1;
+  const span       = anyAdj ? 3 : 1;
 
   const subRows = cashRows.map(r => {
     const adjCls  = r.adj < 0 ? 'num-neg' : r.adj > 0 ? 'num-pos' : 'dash-alloc-zero';
@@ -798,9 +798,8 @@ function _buildAssetAllocationWidget(latestVal) {
         ${anyAdj ? `
           <td class="dash-alloc-adj ${adjCls}">${adjDisp}</td>
           <td class="dash-alloc-adjusted${r.adjusted < 0 ? ' num-neg' : ''}">${r.adj !== 0 ? _dFmtCur(r.adjusted) : ''}</td>
-          <td class="dash-alloc-from">${fromDisp}</td>
         ` : ''}
-        <td></td>
+        <td class="dash-alloc-from">${fromDisp}</td>
       </tr>`;
   }).join('');
 

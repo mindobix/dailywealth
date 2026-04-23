@@ -574,8 +574,10 @@
   font-size: 11px;
   color: var(--ink-faint);
   font-style: italic;
-  padding: 7px 0 7px 16px;
+  padding: 7px 0 7px 20px;
   white-space: nowrap;
+  text-align: left;
+  min-width: 70px;
 }
 
 /* ── Responsive ── */
