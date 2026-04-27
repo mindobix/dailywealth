@@ -43,13 +43,15 @@ function _renderAccountingView() {
   const rmds           = entries.filter(e => e.type === 'rmd').sort((a, b) => a.date < b.date ? -1 : 1);
   const withdrawals    = entries.filter(e => e.type === 'withdrawal').sort((a, b) => a.date < b.date ? -1 : 1);
   const cashEntries    = entries.filter(e => e.type === 'cash').sort((a, b) => a.updatedAt > b.updatedAt ? -1 : 1);
-  const borrowedEntries = entries.filter(e => e.type === 'borrowed').sort((a, b) => a.date < b.date ? -1 : 1);
+  const borrowedEntries    = entries.filter(e => e.type === 'borrowed').sort((a, b) => a.date < b.date ? -1 : 1);
+  const repaymentEntries   = entries.filter(e => e.type === 'repayment').sort((a, b) => a.date < b.date ? -1 : 1);
 
   const totalDeposits    = deposits.reduce((s, e) => s + e.amount, 0);
   const totalRmds        = rmds.reduce((s, e) => s + e.amount, 0);
   const totalWithdrawals = withdrawals.reduce((s, e) => s + e.amount, 0);
   const totalCash        = cashEntries.reduce((s, e) => s + e.amount, 0);
   const totalBorrowed    = borrowedEntries.reduce((s, e) => s + e.amount, 0);
+  const totalRepaid      = repaymentEntries.reduce((s, e) => s + e.amount, 0);
 
   const body = document.getElementById('acktg-body');
   if (!body) return;
@@ -60,7 +62,7 @@ function _renderAccountingView() {
       ${_acktgSection('rmd',        'RMDs',        rmds,        totalRmds)}
       ${_acktgSection('withdrawal', 'Withdrawals', withdrawals, totalWithdrawals)}
       ${_acktgCashSection(cashEntries, totalCash)}
-      ${_acktgBorrowedSection(borrowedEntries, totalBorrowed)}
+      ${_acktgBorrowedSection(borrowedEntries, totalBorrowed, repaymentEntries, totalRepaid)}
       ${_renderRiskAssetsSection()}
     </div>
     <div class="acktg-summary">
@@ -84,7 +86,16 @@ function _renderAccountingView() {
       </div>
       <div class="acktg-summary-row">
         <span class="acktg-summary-label">Total Borrowed</span>
-        <span class="acktg-summary-val">${gFmtCurrency(totalBorrowed)}</span>
+        <span class="acktg-summary-val val-neg">${gFmtCurrency(totalBorrowed)}</span>
+      </div>
+      <div class="acktg-summary-row">
+        <span class="acktg-summary-label">Total Repaid</span>
+        <span class="acktg-summary-val val-pos">−${gFmtCurrency(totalRepaid)}</span>
+      </div>
+      <div class="acktg-summary-divider"></div>
+      <div class="acktg-summary-row acktg-summary-net">
+        <span class="acktg-summary-label">Net Outstanding</span>
+        <span class="acktg-summary-val">${gFmtCurrency(totalBorrowed - totalRepaid)}</span>
       </div>
     </div>
   `;
@@ -462,18 +473,22 @@ async function deleteAcktgEntry(id) {
 // BORROWED SECTION
 // ─────────────────────────────────────────────────────────────────
 
-function _acktgBorrowedSection(entries, total) {
-  const isEmpty = entries.length === 0;
+function _acktgBorrowedSection(entries, total, repaymentEntries, totalRepaid) {
+  const isEmpty    = entries.length === 0;
+  const outstanding = total - totalRepaid;
   return `
-    <div class="acktg-section${isEmpty ? ' acktg-section--collapsed' : ''}">
+    <div class="acktg-section${isEmpty && !repaymentEntries.length ? ' acktg-section--collapsed' : ''}">
       <div class="acktg-section-hd">
         <span class="acktg-section-title">Borrowed</span>
-        <button class="acktg-add-btn" onclick="acktgStartAddBorrowed()">+ Add borrowed</button>
+        <div style="display:flex;gap:8px">
+          <button class="acktg-add-btn" onclick="acktgStartAddBorrowed()">+ Add borrowed</button>
+          <button class="acktg-add-btn acktg-add-btn--repay" onclick="acktgStartAddRepayment()">+ Add repayment</button>
+        </div>
       </div>
-      ${isEmpty ? `
+      ${isEmpty && !repaymentEntries.length ? `
         <div class="acktg-collapsed-bar">
           <span class="acktg-collapsed-empty">No entries</span>
-          <span class="acktg-collapsed-total">Total: ${gFmtCurrency(total)}</span>
+          <span class="acktg-collapsed-total">Outstanding: ${gFmtCurrency(outstanding)}</span>
         </div>` : `
       <div class="acktg-table-wrap">
         <table class="acktg-table">
@@ -492,8 +507,40 @@ function _acktgBorrowedSection(entries, total) {
           </tbody>
           <tfoot>
             <tr class="acktg-total-row">
-              <td>Total</td>
-              <td class="acktg-td-amt">${gFmtCurrency(total)}</td>
+              <td>Borrowed</td>
+              <td class="acktg-td-amt acktg-borrowed-amt">${gFmtCurrency(total)}</td>
+              <td></td><td></td><td></td><td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="acktg-repay-subhd">
+        <span class="acktg-repay-subhd-label">Repayments</span>
+      </div>
+      <div class="acktg-table-wrap">
+        <table class="acktg-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th class="acktg-th-amt">Amount</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="acktg-tbody-repayment">
+            ${repaymentEntries.map(e => _acktgRepaymentRow(e)).join('')}
+          </tbody>
+          <tfoot>
+            <tr class="acktg-total-row">
+              <td>Repaid</td>
+              <td class="acktg-td-amt acktg-repaid-amt">−${gFmtCurrency(totalRepaid)}</td>
+              <td></td><td></td><td></td><td></td>
+            </tr>
+            <tr class="acktg-total-row acktg-outstanding-row">
+              <td><strong>Outstanding</strong></td>
+              <td class="acktg-td-amt"><strong>${gFmtCurrency(outstanding)}</strong></td>
               <td></td><td></td><td></td><td></td>
             </tr>
           </tfoot>
@@ -505,7 +552,7 @@ function _acktgBorrowedSection(entries, total) {
 function _acktgBorrowedRow(e) {
   return `<tr id="acktg-borrow-row-${_aEscAttr(e.id)}">
     <td class="acktg-td-date">${gFmtDate(e.date) || e.date}</td>
-    <td class="acktg-td-amt">${gFmtCurrency(e.amount)}</td>
+    <td class="acktg-td-amt acktg-borrowed-amt">${gFmtCurrency(e.amount)}</td>
     <td class="acktg-td-account">${_aEsc(_acktgAccountName(e.fromAccount))}</td>
     <td class="acktg-td-account">${_aEsc(_acktgAccountName(e.toAccount))}</td>
     <td class="acktg-td-notes">${_aEsc(e.notes || '')}</td>
@@ -639,6 +686,140 @@ async function acktgSaveEditBorrowed(id) {
 
 async function deleteBorrowedEntry(id) {
   if (!confirm('Delete this borrowed entry? This cannot be undone.')) return;
+  await deleteAccountingEntry(id);
+  _acktgEntries = _acktgEntries.filter(e => e.id !== id);
+  _renderAccountingView();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// REPAYMENT SECTION
+// ─────────────────────────────────────────────────────────────────
+
+function _acktgRepaymentRow(e) {
+  return `<tr id="acktg-repay-row-${_aEscAttr(e.id)}">
+    <td class="acktg-td-date">${gFmtDate(e.date) || e.date}</td>
+    <td class="acktg-td-amt acktg-repaid-amt">−${gFmtCurrency(e.amount)}</td>
+    <td class="acktg-td-account">${_aEsc(_acktgAccountName(e.fromAccount))}</td>
+    <td class="acktg-td-account">${_aEsc(_acktgAccountName(e.toAccount))}</td>
+    <td class="acktg-td-notes">${_aEsc(e.notes || '')}</td>
+    <td class="acktg-td-actions">
+      <button class="acktg-edit-btn" onclick="acktgStartEditRepayment('${_aEscAttr(e.id)}')">Edit</button>
+      <button class="acktg-del-btn"  onclick="deleteRepaymentEntry('${_aEscAttr(e.id)}')">Delete</button>
+    </td>
+  </tr>`;
+}
+
+function acktgStartAddRepayment() {
+  let tbody = document.getElementById('acktg-tbody-repayment');
+
+  if (!tbody) {
+    _renderAccountingView();
+    setTimeout(() => {
+      tbody = document.getElementById('acktg-tbody-repayment');
+      if (tbody) _insertRepaymentNewRow(tbody);
+    }, 0);
+    return;
+  }
+  _insertRepaymentNewRow(tbody);
+}
+
+function _insertRepaymentNewRow(tbody) {
+  if (tbody.querySelector('.acktg-new-row')) {
+    tbody.querySelector('.acktg-new-row input, .acktg-new-row select')?.focus();
+    return;
+  }
+
+  const today  = new Date().toLocaleDateString('en-CA');
+  const tempId = 'new-repayment';
+  const opts   = _acktgAccountOptions();
+
+  const tr = document.createElement('tr');
+  tr.className = 'acktg-new-row';
+  tr.innerHTML = `
+    <td><input class="acktg-inline-input" type="date" id="aie-date-${tempId}" value="${today}"></td>
+    <td><input class="acktg-inline-input acktg-inline-amt" type="text" id="aie-amt-${tempId}" placeholder="0.00" inputmode="decimal"></td>
+    <td><select class="acktg-inline-sel" id="aie-from-${tempId}">${opts}</select></td>
+    <td><select class="acktg-inline-sel" id="aie-to-${tempId}">${opts}</select></td>
+    <td><input class="acktg-inline-input acktg-inline-notes" type="text" id="aie-notes-${tempId}" placeholder="Notes…" maxlength="200"></td>
+    <td class="acktg-td-actions">
+      <button class="acktg-save-btn"   onclick="acktgSaveAddRepayment()">Save</button>
+      <button class="acktg-cancel-btn" onclick="_renderAccountingView()">Cancel</button>
+    </td>`;
+
+  tbody.insertBefore(tr, tbody.firstChild);
+  document.getElementById(`aie-amt-${tempId}`).focus();
+}
+
+async function acktgSaveAddRepayment() {
+  const tempId      = 'new-repayment';
+  const date        = document.getElementById(`aie-date-${tempId}`)?.value  || '';
+  const amountRaw   = document.getElementById(`aie-amt-${tempId}`)?.value   || '';
+  const fromAccount = document.getElementById(`aie-from-${tempId}`)?.value  || '';
+  const toAccount   = document.getElementById(`aie-to-${tempId}`)?.value    || '';
+  const notes       = document.getElementById(`aie-notes-${tempId}`)?.value.trim() || '';
+
+  if (!date)                                { document.getElementById(`aie-date-${tempId}`)?.focus(); return; }
+  const amount = parseFloat(String(amountRaw).replace(/[$,]/g, ''));
+  if (isNaN(amount) || amount <= 0)         { document.getElementById(`aie-amt-${tempId}`)?.focus();  return; }
+  if (!fromAccount)                         { document.getElementById(`aie-from-${tempId}`)?.focus(); return; }
+  if (!toAccount)                           { document.getElementById(`aie-to-${tempId}`)?.focus();   return; }
+
+  const id       = 'acktg_' + uid();
+  const clientId = getActiveClientId();
+
+  await saveAccountingEntry({ id, clientId, type: 'repayment', date, amount, fromAccount, toAccount, notes });
+  _acktgEntries = await getAccountingEntries();
+  _renderAccountingView();
+}
+
+function acktgStartEditRepayment(id) {
+  const e = _acktgEntries.find(x => x.id === id);
+  if (!e) return;
+  const tr = document.getElementById('acktg-repay-row-' + id);
+  if (!tr) return;
+
+  const safeId = _aEscAttr(id);
+  const opts   = _acktgAccountOptions();
+
+  tr.innerHTML = `
+    <td><input class="acktg-inline-input" type="date" id="aie-date-${safeId}" value="${_aVal(e.date)}"></td>
+    <td><input class="acktg-inline-input acktg-inline-amt" type="text" id="aie-amt-${safeId}" value="${e.amount}" inputmode="decimal"></td>
+    <td><select class="acktg-inline-sel" id="aie-from-${safeId}">${opts}</select></td>
+    <td><select class="acktg-inline-sel" id="aie-to-${safeId}">${opts}</select></td>
+    <td><input class="acktg-inline-input acktg-inline-notes" type="text" id="aie-notes-${safeId}" value="${_aVal(e.notes || '')}" maxlength="200"></td>
+    <td class="acktg-td-actions">
+      <button class="acktg-save-btn"   onclick="acktgSaveEditRepayment('${safeId}')">Save</button>
+      <button class="acktg-cancel-btn" onclick="_renderAccountingView()">Cancel</button>
+    </td>`;
+
+  document.getElementById(`aie-from-${id}`).value = e.fromAccount || '';
+  document.getElementById(`aie-to-${id}`).value   = e.toAccount   || '';
+  document.getElementById(`aie-amt-${id}`).focus();
+}
+
+async function acktgSaveEditRepayment(id) {
+  const e = _acktgEntries.find(x => x.id === id);
+  if (!e) return;
+
+  const date        = document.getElementById(`aie-date-${id}`)?.value  || '';
+  const amountRaw   = document.getElementById(`aie-amt-${id}`)?.value   || '';
+  const fromAccount = document.getElementById(`aie-from-${id}`)?.value  || '';
+  const toAccount   = document.getElementById(`aie-to-${id}`)?.value    || '';
+  const notes       = document.getElementById(`aie-notes-${id}`)?.value.trim() || '';
+
+  if (!date)                                { document.getElementById(`aie-date-${id}`)?.focus(); return; }
+  const amount = parseFloat(String(amountRaw).replace(/[$,]/g, ''));
+  if (isNaN(amount) || amount <= 0)         { document.getElementById(`aie-amt-${id}`)?.focus();  return; }
+  if (!fromAccount)                         { document.getElementById(`aie-from-${id}`)?.focus(); return; }
+  if (!toAccount)                           { document.getElementById(`aie-to-${id}`)?.focus();   return; }
+
+  await saveAccountingEntry({ ...e, date, amount, fromAccount, toAccount, notes });
+  _acktgEntries = await getAccountingEntries();
+  _renderAccountingView();
+}
+
+async function deleteRepaymentEntry(id) {
+  if (!confirm('Delete this repayment entry? This cannot be undone.')) return;
   await deleteAccountingEntry(id);
   _acktgEntries = _acktgEntries.filter(e => e.id !== id);
   _renderAccountingView();

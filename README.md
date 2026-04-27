@@ -30,7 +30,7 @@ js/
   accounts.js       — Account & computed field management, column ordering
   investments.js    — Investments grid, True P&L column
   529plans.js       — 529 Plans grid
-  accounting.js     — Accounting entries (deposits, RMDs, withdrawals, cash, borrowed)
+  accounting.js     — Accounting entries (deposits, RMDs, withdrawals, cash, borrowed, repayments)
   risk-assets.js    — Risk asset trades (stocks & options) with P&L calculations
   dashboard.js      — Dashboard: charts, widgets, profit matrix, risk asset book
   computed.js       — Computed column definitions
@@ -64,7 +64,7 @@ css/
 | `computedFields` | Computed column definitions per client |
 | `csvImportTypes` | CSV import type configurations |
 | `csvRecords` | Raw imported CSV records |
-| `accountingEntries` | Deposits, RMDs, withdrawals, cash, and borrowed entries per client |
+| `accountingEntries` | Deposits, RMDs, withdrawals, cash, borrowed, and repayment entries per client |
 | `riskAssets` | Risk asset trades (stocks & options) with embedded legs per client |
 
 All stores are included in backup and restore.
@@ -115,9 +115,13 @@ Layout (top to bottom):
 
 ### Accounting
 
-- **Deposits / RMDs / Withdrawals / Borrowed** — 2-column grid per section, inline add/edit/delete
+- **Deposits / RMDs / Withdrawals** — inline add/edit/delete per section
 - **Cash** — per-account cash balances with auto-timestamped "Last Updated"; supports negative amounts
-- **Net Summary** — totals for Deposits, RMDs, Withdrawals, Borrowed, and Total Cash
+- **Borrowed & Repayments** — single collapsible section with two sub-tables:
+  - **Borrowed** (amounts in red) — DATE, AMOUNT, FROM, TO, NOTES; footer shows gross total
+  - **Repayments** (amounts in green) — same fields, records money paid back; footer shows repaid total and **Net Outstanding**
+  - `+ Add borrowed` and `+ Add repayment` buttons in the section header
+- **Net Summary** — Deposits, RMDs, Withdrawals, Cash, Borrowed, Repaid, Net Outstanding
 - **Risk Assets** — Fidelity-style master table for stock and options trades (see below)
 
 ### Risk Assets (Accounting tab)
@@ -179,4 +183,5 @@ Stores covered: `investments`, `plans529`, `kids`, `importHistory`, `clients`, `
 - **Last Price is manual** — no live data feed; the user enters the current market price per trade to enable unrealized P&L calculations.
 - **Dashboard Risk Asset Book is self-contained** — `_dashRaCalc()` in `dashboard.js` mirrors `_raCalc()` from `risk-assets.js` so the dashboard does not depend on the accounting module's internal state.
 - **Multi-client date clash detection** — when a date cell is edited in the investments or 529 grids, `grid.js` checks for an ID clash scoped to the same client only. A clash against a different client's record is allowed and resolved by appending the clientId to the new record's ID.
-- **Accounting entry types** — all accounting entries (deposits, RMDs, withdrawals, cash, borrowed) live in the single `accountingEntries` store, distinguished by a `type` field.
+- **Accounting entry types** — all accounting entries (deposits, RMDs, withdrawals, cash, borrowed, repayment) live in the single `accountingEntries` store, distinguished by a `type` field.
+- **Repayments net out borrowed everywhere** — `_dashBorrowedByAccount` in `dashboard.js` processes both borrowed and repayment entries with the same sign convention, so asset allocation, account breakdown, hero sub-totals, portfolio chart trend, and borrowed stat card pills all reflect the net outstanding amount automatically. Borrowed pills disappear when fully repaid.

@@ -159,12 +159,15 @@ async function _saveCellChange(storeName, recId, field, newVal, type) {
   if (field === 'date' && type === 'date' && newVal && newVal !== record.date) {
     // Date field changed: ID must change too
     const prefix = storeName === 'investments' ? 'inv_' : '529_';
-    const newId  = prefix + newVal;
-    if (newId !== record.id) {
-      const clash = await dbGet(storeName, newId);
-      if (clash) { alert(`A record for ${newVal} already exists.`); return; }
+    const baseId = prefix + newVal;
+    if (baseId !== record.id) {
+      const clash = await dbGet(storeName, baseId);
+      if (clash && clash.clientId === record.clientId) {
+        alert(`A record for ${newVal} already exists.`); return;
+      }
       await dbDelete(storeName, record.id);
-      record.id = newId;
+      // If a different client owns baseId, append clientId to keep IDs unique
+      record.id = clash ? baseId + '_' + record.clientId : baseId;
     }
     record.date = newVal;
   } else {

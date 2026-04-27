@@ -16,8 +16,9 @@ let _dashAllAccounts   = [];             // all account records for name lookup
 let _dashLatest529Date = null;           // last-entered date across all 529 records
 let _dashGainLossField     = 'gainLoss';  // designated gain/loss field for active client
 let _dashSecondaryComputed = null;        // computed field marked as secondary total
-let _dashBorrowedByAccount = {};          // accountId → net borrowed (from − to) for latest display
-let _dashBorrowedEntries  = [];          // raw borrowed entries for active client (for date-aware chart)
+let _dashBorrowedByAccount  = {};         // accountId → net borrowed/repaid for latest display
+let _dashBorrowedEntries   = [];         // raw borrowed entries for active client
+let _dashRepaymentEntries  = [];         // raw repayment entries for active client
 let _dashRiskTrades       = [];          // risk asset trades for active client
 
 function getDashTotalField() { return _dashTotalField; }
@@ -146,9 +147,16 @@ async function initDashboardView() {
   };
   _dashCashEntries = acktgFiltered.filter(e => e.type === 'cash');
 
-  _dashBorrowedEntries  = acktgFiltered.filter(e => e.type === 'borrowed');
+  _dashBorrowedEntries   = acktgFiltered.filter(e => e.type === 'borrowed');
+  _dashRepaymentEntries  = acktgFiltered.filter(e => e.type === 'repayment');
   _dashBorrowedByAccount = {};
   for (const e of _dashBorrowedEntries) {
+    const amt = e.amount || 0;
+    if (e.fromAccount) _dashBorrowedByAccount[e.fromAccount] = (_dashBorrowedByAccount[e.fromAccount] || 0) + amt;
+    if (e.toAccount)   _dashBorrowedByAccount[e.toAccount]   = (_dashBorrowedByAccount[e.toAccount]   || 0) - amt;
+  }
+  // Repayments reverse the borrowed flow: fromAccount (repayer) gains back, toAccount (lender) loses outstanding
+  for (const e of _dashRepaymentEntries) {
     const amt = e.amount || 0;
     if (e.fromAccount) _dashBorrowedByAccount[e.fromAccount] = (_dashBorrowedByAccount[e.fromAccount] || 0) + amt;
     if (e.toAccount)   _dashBorrowedByAccount[e.toAccount]   = (_dashBorrowedByAccount[e.toAccount]   || 0) - amt;
@@ -249,24 +257,32 @@ function _renderDashboard() {
     if (sf.some(f => latest[f] != null)) secondaryTotal = val;
   }
 
-  // Borrowed pills — grouped by fromAccount, showing negative amount and toAccount(s)
+  // Borrowed pills — grouped by lender (fromAccount in borrowed), showing net outstanding
   const _borrowedFromMap = {};
   for (const e of _dashBorrowedEntries) {
     if (!e.fromAccount) continue;
-    if (!_borrowedFromMap[e.fromAccount]) _borrowedFromMap[e.fromAccount] = { total: 0, toNames: new Set() };
+    if (!_borrowedFromMap[e.fromAccount]) _borrowedFromMap[e.fromAccount] = { total: 0, repaid: 0, toNames: new Set() };
     _borrowedFromMap[e.fromAccount].total += (e.amount || 0);
     if (e.toAccount) {
       const toAcct = _dashAllAccounts.find(a => a.id === e.toAccount);
       _borrowedFromMap[e.fromAccount].toNames.add(toAcct?.name || e.toAccount);
     }
   }
+  // Subtract repayments: repayment toAccount = the original lender
+  for (const e of _dashRepaymentEntries) {
+    if (!e.toAccount || !_borrowedFromMap[e.toAccount]) continue;
+    _borrowedFromMap[e.toAccount].repaid += (e.amount || 0);
+  }
   const borrowedPills = Object.entries(_borrowedFromMap)
-    .map(([acctId, { total, toNames }]) => {
+    .map(([acctId, { total, repaid, toNames }]) => {
+      const net  = total - repaid;
+      if (net <= 0) return '';
       const acct = _dashAllAccounts.find(a => a.id === acctId);
       const name = acct?.name || 'Account';
-      const toLabel = toNames.size ? `To: ${[...toNames].join(', ')}` : '';
-      return _statCard(`Borrowed · ${name}`, -total, 'gain', toLabel);
+      const toLabel = toNames.size ? `Outstanding to: ${[...toNames].join(', ')}` : '';
+      return _statCard(`Borrowed · ${name}`, -net, 'gain', toLabel);
     })
+    .filter(Boolean)
     .join('');
 
   // True Return calculation using accounting totals
@@ -699,14 +715,15 @@ function _dashFilteredPoints() {
   return recs
     .filter(r => _dashTotalVal(r) !== null)
     .map((r, i) => {
-      // Only include borrowed entries dated on or before this record's date
-      const borrowAdj = _dashBorrowedEntries
-        .filter(e => e.date <= r.date)
-        .reduce((s, e) => {
-          if (invAcctIds.has(e.fromAccount)) s += (e.amount || 0);
-          if (invAcctIds.has(e.toAccount))   s -= (e.amount || 0);
-          return s;
-        }, 0);
+      // Borrowed + repayment adjustments dated on or before this record's date
+      const borrowAdj = [
+        ..._dashBorrowedEntries.filter(e => e.date <= r.date),
+        ..._dashRepaymentEntries.filter(e => e.date <= r.date),
+      ].reduce((s, e) => {
+        if (invAcctIds.has(e.fromAccount)) s += (e.amount || 0);
+        if (invAcctIds.has(e.toAccount))   s -= (e.amount || 0);
+        return s;
+      }, 0);
       return {
         date:   r.date,
         value:  _dashTotalVal(r) + borrowAdj,
@@ -1047,9 +1064,9 @@ function _buildAssetAllocationWidget(latestVal) {
       const original = e.amount;
       const adj      = _dashBorrowedByAccount[e.accountId] || 0;
 
-      // Collect unique fromAccount names for borrowed entries touching this account
+      // Collect unique account names for borrowed/repayment entries touching this account
       const fromNames = [...new Set(
-        _dashBorrowedEntries
+        [..._dashBorrowedEntries, ..._dashRepaymentEntries]
           .filter(b => b.fromAccount === e.accountId || b.toAccount === e.accountId)
           .map(b => {
             const fa = _dashAllAccounts.find(a => a.id === b.fromAccount);

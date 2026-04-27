@@ -48,7 +48,7 @@ python3 -m http.server 8080
 | `computedFields` | uid | Per-client computed column defs |
 | `csvImportTypes` | uid | CSV import type configs |
 | `csvRecords` | uid | Raw imported CSV rows |
-| `accountingEntries` | uid | Deposits, RMDs, withdrawals, cash, borrowed — all in one store, split by `type` field |
+| `accountingEntries` | uid | Deposits, RMDs, withdrawals, cash, borrowed, repayment — all in one store, split by `type` field |
 | `riskAssets` | uid | Stock/option trades with embedded `legs[]` array |
 
 **All 12 stores are included in backup/restore** (`app.js → backupData / restoreData`).
@@ -71,10 +71,14 @@ python3 -m http.server 8080
 - `_buildRiskAssetsWidget()` — self-contained Risk Asset Book widget; uses `_dashRaCalc()` (mirrors `_raCalc`) so it doesn't depend on `risk-assets.js` state
 - Dashboard layout order: hero+stats row → risk asset book → portfolio chart → allocation/yearly → breakdown/monthly
 - Stat cards and Profit Matrix are co-located in `.dash-top-right` (flex column, right side of hero row)
+- `_dashBorrowedByAccount` — net per-account borrowed adjustment; processes both `_dashBorrowedEntries` and `_dashRepaymentEntries` with identical sign logic (fromAccount += amt, toAccount -= amt). Repayments reverse the direction of the original borrow, so the net naturally cancels when fully repaid
+- Borrowed stat card pills show **net outstanding** per lender account and are hidden when net ≤ 0
 
 ### `accounting.js`
 - `_acktgAccountOptions(selectedId)` — accepts optional `selectedId` to pre-select the account dropdown when editing an existing entry
-- All accounting types (`deposit`, `rmd`, `withdrawal`, `cash`, `borrowed`) share the `accountingEntries` store
+- All accounting types (`deposit`, `rmd`, `withdrawal`, `cash`, `borrowed`, `repayment`) share the `accountingEntries` store
+- Borrowed section renders two sub-tables: borrowed entries (red amounts) and repayment entries (green amounts), with a net Outstanding footer row
+- `_dashBorrowedByAccount` in `dashboard.js` processes repayment entries with the same sign logic as borrowed entries, so all dashboard widgets automatically reflect net outstanding without extra code
 
 ### `app.js` — backup / restore
 - `backupData()` — reads all 12 stores, downloads JSON

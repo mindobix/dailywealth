@@ -64,6 +64,15 @@
   border-color: var(--accent);
   color: #fff;
 }
+.acktg-add-btn--repay {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.acktg-add-btn--repay:hover {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+}
 
 /* ── Section table ───────────────────────────────────────────────── */
 .acktg-table-wrap {
@@ -230,6 +239,41 @@ tr:has(.acktg-inline-sel) td {
   font-size: 12px;
   font-family: var(--font-sans);
   font-style: italic;
+}
+
+/* Repayments sub-header */
+.acktg-repay-subhd {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--canvas-sunk);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.acktg-repay-subhd-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ok);
+}
+
+/* Borrowed amounts shown in red */
+.acktg-borrowed-amt {
+  color: var(--bad) !important;
+  font-weight: 700;
+}
+
+/* Repaid amounts shown in green */
+.acktg-repaid-amt {
+  color: var(--ok) !important;
+  font-weight: 700;
+}
+
+/* Outstanding footer row */
+.acktg-outstanding-row td {
+  border-top: 1px solid var(--rule-strong);
+  background: var(--canvas);
 }
 
 /* Total footer row */
