@@ -32,7 +32,7 @@ async function downloadDashboardPdf(btn) {
     for (const src of _PDF_LIBS) await _loadScriptOnce(src);
 
     const canvas = await html2canvas(body, {
-      scale: 2,
+      scale: 1.5,
       backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
       useCORS: true,
       logging: false,
@@ -40,7 +40,7 @@ async function downloadDashboardPdf(btn) {
     });
 
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
     const margin = 8;
@@ -48,14 +48,14 @@ async function downloadDashboardPdf(btn) {
     const imgH = canvas.height * imgW / canvas.width;
     const contentH = pageH - margin * 2;
 
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/jpeg', 0.82);
     let heightLeft = imgH;
-    pdf.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
+    pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH, 'dash', 'FAST');
     heightLeft -= contentH;
     while (heightLeft > 0) {
       const position = margin - (imgH - heightLeft);
       pdf.addPage();
-      pdf.addImage(imgData, 'PNG', margin, position, imgW, imgH);
+      pdf.addImage(imgData, 'JPEG', margin, position, imgW, imgH, 'dash', 'FAST');
       heightLeft -= contentH;
     }
 
