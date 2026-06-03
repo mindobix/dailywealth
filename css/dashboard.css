@@ -2,6 +2,34 @@
 
 #view-dashboard { background: var(--canvas); }
 
+.dash-page-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dash-pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  padding: 9px 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--canvas-raised);
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: opacity 0.15s ease, transform 0.05s ease;
+}
+.dash-pdf-btn:hover { opacity: 0.9; }
+.dash-pdf-btn:active { transform: translateY(1px); }
+.dash-pdf-btn:disabled { opacity: 0.6; cursor: default; }
+
 .dash-body {
   padding: 24px 40px 40px;
   display: flex;
